@@ -6,7 +6,8 @@ export async function POST(request: Request) {
   const { isAdmin } = await requireAdmin();
   if (!isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { slotName, resellerCompanyName, isReseller } = await request.json();
+  const { slotName, resellerCompanyName, isReseller, boxKind } = await request.json();
+  const cleanBoxKind = boxKind === "MESSAGE" ? "MESSAGE" : "PHOTO";
   const supabase = createSupabaseAdminClient();
 
   if (isReseller) {
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
       .from("customer_slots")
       .insert({
         is_reseller: true,
+        box_kind: cleanBoxKind,
         reseller_company_name: cleanCompanyName,
         reseller_suspended: false,
         slot_name: cleanCompanyName,
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase
     .from("customer_slots")
-    .insert({ slot_name: cleanSlotName, is_reseller: false })
+    .insert({ slot_name: cleanSlotName, is_reseller: false, box_kind: cleanBoxKind })
     .select("id")
     .single();
 

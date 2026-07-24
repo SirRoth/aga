@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       storage_prefix: null,
       event_start_at: null,
       storage_used_bytes: 0,
+      box_kind: resellerSlot.box_kind,
       allow_videos: false
     })
     .eq("id", resellerSlot.id);

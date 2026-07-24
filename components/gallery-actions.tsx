@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download } from "lucide-react";
+import { Download, FileText, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Photo } from "@/lib/types";
 import { bytesToHuman } from "@/lib/utils";
@@ -11,6 +11,13 @@ function getZipName(response: Response) {
   const disposition = response.headers.get("content-disposition");
   const match = disposition?.match(/filename="([^"]+)"/);
   return match?.[1] ?? "photos.zip";
+}
+
+function getGalleryLabel(photo: Photo) {
+  if (photo.mime_type.startsWith("audio/")) return "Voice note";
+  if (photo.mime_type.startsWith("video/")) return "Video";
+  if (photo.mime_type.includes("word")) return "Written message";
+  return "Photo";
 }
 
 export function GalleryActions({ token, photos }: { token: string; photos: Photo[] }) {
@@ -164,6 +171,16 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
                   preload="metadata"
                   src={`/api/download?token=${token}&photoId=${photo.id}`}
                 />
+              ) : photo.mime_type.startsWith("audio/") ? (
+                <div className="flex aspect-square flex-col items-center justify-center gap-4 bg-[#f6eadb] p-4 text-[#4a3b32]">
+                  <Mic className="h-12 w-12 text-[#b98537]" />
+                  <audio className="w-full" controls src={`/api/download?token=${token}&photoId=${photo.id}`} />
+                </div>
+              ) : photo.mime_type.includes("word") ? (
+                <div className="flex aspect-square flex-col items-center justify-center gap-3 bg-[#f6eadb] p-5 text-center text-[#4a3b32]">
+                  <FileText className="h-14 w-14 text-[#b98537]" />
+                  <span className="text-sm font-semibold">Written message</span>
+                </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -172,13 +189,16 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
                   src={`/api/download?token=${token}&photoId=${photo.id}`}
                 />
               )}
-              <span className="block truncate px-3 py-3 text-xs font-medium text-[#4a3b32]">{photo.file_name}</span>
+              <span className="block truncate px-3 pt-3 text-xs font-semibold text-[#4a3b32]">
+                {getGalleryLabel(photo)}
+              </span>
+              <span className="block truncate px-3 pb-3 pt-1 text-xs text-[#6e5543]">{photo.file_name}</span>
             </label>
           ))}
         </div>
       ) : (
         <p className="rounded-[20px] border border-white/70 bg-[#fffaf3]/90 p-6 text-[#4a3b32] shadow-xl shadow-[#7f5a2d]/10">
-          No photos have been uploaded yet.
+          No files have been uploaded yet.
         </p>
       )}
     </div>

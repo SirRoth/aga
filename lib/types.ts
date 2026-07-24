@@ -1,10 +1,12 @@
 export type SlotStatus = "VACANT" | "ACTIVE" | "EXPIRED_GRACE";
+export type SlotBoxKind = "PHOTO" | "MESSAGE";
 
 export type CustomerSlot = {
   id: string;
   slot_name: string;
   storage_limit_bytes: number;
   storage_used_bytes: number;
+  box_kind: SlotBoxKind;
   allow_videos: boolean;
   is_reseller: boolean;
   reseller_suspended: boolean;

@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CustomerSlot } from "@/lib/types";
+import type { SlotBoxKind } from "@/lib/types";
 
 function absoluteUrl(path: string) {
   if (typeof window === "undefined") return path;
@@ -105,6 +106,7 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
   const [eventName, setEventName] = useState("");
   const [allowVideos, setAllowVideos] = useState(false);
   const [pending, startTransition] = useTransition();
+  const isMessageBox = slot.box_kind === "MESSAGE";
 
   function submit() {
     startTransition(async () => {
@@ -134,19 +136,23 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
           Provision
         </Button>
       </div>
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-        <input
-          checked={allowVideos}
-          className="peer sr-only"
-          disabled={slot.status !== "VACANT" || slot.reseller_suspended}
-          onChange={(event) => setAllowVideos(event.target.checked)}
-          type="checkbox"
-        />
-        <span className="flex h-5 w-5 items-center justify-center rounded-full border border-input bg-white text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-disabled:opacity-50">
-          <CheckCircle2 className="h-4 w-4" />
-        </span>
-        Allow video uploads
-      </label>
+      {isMessageBox ? (
+        <p className="text-xs text-muted-foreground">Voice, video, and text messages are enabled for this box.</p>
+      ) : (
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+          <input
+            checked={allowVideos}
+            className="peer sr-only"
+            disabled={slot.status !== "VACANT" || slot.reseller_suspended}
+            onChange={(event) => setAllowVideos(event.target.checked)}
+            type="checkbox"
+          />
+          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-input bg-white text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-disabled:opacity-50">
+            <CheckCircle2 className="h-4 w-4" />
+          </span>
+          Allow video uploads
+        </label>
+      )}
       {slot.reseller_suspended ? (
         <p className="text-xs text-destructive">This reseller is suspended. Unsuspend before provisioning.</p>
       ) : null}
@@ -154,16 +160,17 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
   );
 }
 
-export function AddCustomerBoxForm() {
+export function AddCustomerBoxForm({ boxKind = "PHOTO" }: { boxKind?: SlotBoxKind }) {
   const [slotName, setSlotName] = useState("");
   const [pending, startTransition] = useTransition();
+  const isMessageBox = boxKind === "MESSAGE";
 
   function submit() {
     startTransition(async () => {
       const response = await fetch("/api/admin/slots/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slotName })
+        body: JSON.stringify({ slotName, boxKind })
       });
       if (response.ok) {
         setSlotName("");
@@ -177,22 +184,23 @@ export function AddCustomerBoxForm() {
       <Input value={slotName} onChange={(event) => setSlotName(event.target.value)} placeholder="Box name" />
       <Button onClick={submit} disabled={pending || !slotName.trim()}>
         <Plus className="h-4 w-4" />
-        Add customer box
+        {isMessageBox ? "Add message box" : "Add customer box"}
       </Button>
     </div>
   );
 }
 
-export function AddResellerBoxForm() {
+export function AddResellerBoxForm({ boxKind = "PHOTO" }: { boxKind?: SlotBoxKind }) {
   const [companyName, setCompanyName] = useState("");
   const [pending, startTransition] = useTransition();
+  const isMessageBox = boxKind === "MESSAGE";
 
   function submit() {
     startTransition(async () => {
       const response = await fetch("/api/admin/slots/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ isReseller: true, resellerCompanyName: companyName })
+        body: JSON.stringify({ isReseller: true, resellerCompanyName: companyName, boxKind })
       });
       if (response.ok) {
         setCompanyName("");
@@ -210,7 +218,7 @@ export function AddResellerBoxForm() {
       />
       <Button onClick={submit} disabled={pending || !companyName.trim()}>
         <Plus className="h-4 w-4" />
-        Add reseller box
+        {isMessageBox ? "Add message reseller" : "Add reseller box"}
       </Button>
     </div>
   );
@@ -459,7 +467,11 @@ export function SlotLinks({ slot }: { slot: CustomerSlot }) {
     <div className="grid gap-2 text-sm">
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
         <Video className="h-4 w-4" />
-        {slot.allow_videos ? "Photos and videos enabled" : "Photos only"}
+        {slot.box_kind === "MESSAGE"
+          ? "Voice, video, and text messages enabled"
+          : slot.allow_videos
+          ? "Photos and videos enabled"
+          : "Photos only"}
       </div>
       {slot.is_reseller && slot.reseller_suspended ? (
         <div className="flex items-center gap-2 text-xs font-medium text-destructive">

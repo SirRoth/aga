@@ -22,6 +22,7 @@ export default async function DownloadPage({ params }: { params: { download_toke
     customerSlot.status === "ACTIVE" &&
     !customerSlot.reseller_suspended &&
     isWithinActiveWindow(customerSlot.event_start_at);
+  const isMessageBox = customerSlot.box_kind === "MESSAGE";
 
   const { data: photos } = await supabase
     .from("photos")
@@ -40,12 +41,13 @@ export default async function DownloadPage({ params }: { params: { download_toke
                   {customerSlot.event_name}
                 </p>
                 <h1 className="mt-5 font-serif text-4xl font-semibold leading-tight text-[#2d211a] sm:text-5xl">
-                  Photo gallery
+                  {isMessageBox ? "Message gallery" : "Photo gallery"}
                 </h1>
                 <div className="mt-5 h-px w-full max-w-md bg-gradient-to-r from-[#b98537] via-[#dfcaa8] to-transparent" />
                 <p className="mt-5 max-w-2xl text-lg leading-8 text-[#4a3b32]">
-                  Download the moments captured at your event. Choose individual memories or collect everything in one
-                  zip file.
+                  {isMessageBox
+                    ? "Download the voice notes, videos, and written messages from your event."
+                    : "Download the moments captured at your event. Choose individual memories or collect everything in one zip file."}
                 </p>
               </div>
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-[#d8b98e] bg-white/60 text-[#b98537]">

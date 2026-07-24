@@ -12,8 +12,22 @@ type UploadFileRequest = {
   sizeBytes: number;
 };
 
-function isAllowedMimeType(mimeType: string, allowVideos: boolean) {
-  return mimeType.startsWith("image/") || (allowVideos && mimeType.startsWith("video/"));
+function isAllowedMimeType(mimeType: string, slot: CustomerSlot) {
+  if (slot.box_kind === "MESSAGE") {
+    return (
+      mimeType.startsWith("audio/") ||
+      mimeType.startsWith("video/") ||
+      mimeType === "application/msword" ||
+      mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+  }
+
+  return mimeType.startsWith("image/") || (slot.allow_videos && mimeType.startsWith("video/"));
+}
+
+function allowedFileMessage(slot: CustomerSlot) {
+  if (slot.box_kind === "MESSAGE") return "Only voice notes, videos, and text documents are allowed.";
+  return slot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed.";
 }
 
 async function getActiveSlot(uploadSlug: string) {
@@ -70,11 +84,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Storage limit reached for this event." }, { status: 413 });
   }
 
-  if (files.some((file) => !isAllowedMimeType(file.mimeType || "application/octet-stream", slot.allow_videos))) {
-    return NextResponse.json(
-      { error: slot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed." },
-      { status: 415 }
-    );
+  if (files.some((file) => !isAllowedMimeType(file.mimeType || "application/octet-stream", slot))) {
+    return NextResponse.json({ error: allowedFileMessage(slot) }, { status: 415 });
   }
 
   const uploads = await Promise.all(
@@ -125,11 +136,8 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Storage limit reached for this event." }, { status: 413 });
   }
 
-  if (uploads.some((upload) => !isAllowedMimeType(upload.mimeType || "application/octet-stream", slot.allow_videos))) {
-    return NextResponse.json(
-      { error: slot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed." },
-      { status: 415 }
-    );
+  if (uploads.some((upload) => !isAllowedMimeType(upload.mimeType || "application/octet-stream", slot))) {
+    return NextResponse.json({ error: allowedFileMessage(slot) }, { status: 415 });
   }
 
   for (const upload of uploads) {

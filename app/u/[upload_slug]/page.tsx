@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { Camera, Heart } from "lucide-react";
+import { Camera, Heart, MessageSquareHeart } from "lucide-react";
+import { MessageUploadForm } from "@/components/message-upload-form";
 import { UploadForm } from "@/components/upload-form";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
@@ -26,6 +27,7 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
     !suspended &&
     isWithinActiveWindow(customerSlot.event_start_at);
   const hasCapacity = customerSlot.storage_used_bytes < customerSlot.storage_limit_bytes;
+  const isMessageBox = customerSlot.box_kind === "MESSAGE";
 
   return (
     <main className="min-h-screen bg-[#e7d5bd] text-[#2f241d]">
@@ -42,24 +44,34 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
 
             <div className="my-8 grid grid-cols-[56px_1fr] gap-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-[#b98537] text-[#b98537]">
-                <Camera className="h-7 w-7" />
+                {isMessageBox ? <MessageSquareHeart className="h-7 w-7" /> : <Camera className="h-7 w-7" />}
               </div>
               <p className="text-lg leading-8 text-[#352b25]">
-                We&apos;d love to see the memories you captured. Upload your photos and videos from the event and
-                help us relive the moments together.
+                {isMessageBox
+                  ? "Leave a voice note, record a video, or write a message for the event host."
+                  : "We'd love to see the memories you captured. Upload your photos and videos from the event and help us relive the moments together."}
               </p>
             </div>
 
             {active && hasCapacity ? (
-              <UploadForm
-              uploadSlug={params.upload_slug}
-              allowVideos={customerSlot.allow_videos}
-              storageLimitBytes={customerSlot.storage_limit_bytes}
-              storageUsedBytes={customerSlot.storage_used_bytes}
-            />
+              isMessageBox ? (
+                <MessageUploadForm
+                  uploadSlug={params.upload_slug}
+                  eventName={customerSlot.event_name}
+                  storageLimitBytes={customerSlot.storage_limit_bytes}
+                  storageUsedBytes={customerSlot.storage_used_bytes}
+                />
+              ) : (
+                <UploadForm
+                  uploadSlug={params.upload_slug}
+                  allowVideos={customerSlot.allow_videos}
+                  storageLimitBytes={customerSlot.storage_limit_bytes}
+                  storageUsedBytes={customerSlot.storage_used_bytes}
+                />
+              )
             ) : (
               <p className="rounded-lg border border-[#ead9c2] bg-white/70 p-4 text-sm">
-                This upload link is no longer accepting photos. Please contact the event host.
+                This upload link is no longer accepting submissions. Please contact the event host.
               </p>
             )}
 
@@ -91,7 +103,7 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
               Every smile, every laugh, every moment captured becomes a memory we&apos;ll treasure forever.
             </p>
             <div className="mt-12 rounded-full border border-white/60 bg-white/30 px-6 py-3 text-sm font-medium text-[#8d632b] backdrop-blur">
-              Secure event photo drop
+              {isMessageBox ? "Secure event message drop" : "Secure event photo drop"}
             </div>
           </div>
         </aside>

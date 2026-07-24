@@ -6,8 +6,22 @@ import { isWithinActiveWindow } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
-function isAllowedMimeType(mimeType: string, allowVideos: boolean) {
-  return mimeType.startsWith("image/") || (allowVideos && mimeType.startsWith("video/"));
+function isAllowedMimeType(mimeType: string, slot: CustomerSlot) {
+  if (slot.box_kind === "MESSAGE") {
+    return (
+      mimeType.startsWith("audio/") ||
+      mimeType.startsWith("video/") ||
+      mimeType === "application/msword" ||
+      mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+  }
+
+  return mimeType.startsWith("image/") || (slot.allow_videos && mimeType.startsWith("video/"));
+}
+
+function allowedFileMessage(slot: CustomerSlot) {
+  if (slot.box_kind === "MESSAGE") return "Only voice notes, videos, and text documents are allowed.";
+  return slot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed.";
 }
 
 export async function POST(request: Request) {
@@ -52,11 +66,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Upload object key is outside this event." }, { status: 400 });
   }
 
-  if (!isAllowedMimeType(mimeType, customerSlot.allow_videos)) {
-    return NextResponse.json(
-      { error: customerSlot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed." },
-      { status: 415 }
-    );
+  if (!isAllowedMimeType(mimeType, customerSlot)) {
+    return NextResponse.json({ error: allowedFileMessage(customerSlot) }, { status: 415 });
   }
 
   if (customerSlot.storage_used_bytes + sizeBytes > customerSlot.storage_limit_bytes) {

@@ -22,6 +22,8 @@ import { bytesToHuman } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+type AdminTab = "customers" | "resellers" | "messages" | "message-resellers";
+
 function SlotCard({ slot, mode }: { slot: CustomerSlot; mode: "customer" | "reseller-setup" | "reseller" }) {
   const usedPercent = Math.min((slot.storage_used_bytes / slot.storage_limit_bytes) * 100, 100);
 
@@ -85,10 +87,50 @@ export default async function AdminPage({
 
   if (error) throw error;
   const allSlots = slots as CustomerSlot[];
-  const activeTab = searchParams?.tab === "resellers" ? "resellers" : "customers";
-  const customerSlots = allSlots.filter((slot) => !slot.is_reseller);
-  const resellerSlots = allSlots.filter((slot) => slot.is_reseller);
-  const resellerAssignableSlots = allSlots.filter((slot) => !slot.is_reseller && slot.status === "VACANT");
+  const activeTab: AdminTab =
+    searchParams?.tab === "resellers"
+      ? "resellers"
+      : searchParams?.tab === "messages"
+      ? "messages"
+      : searchParams?.tab === "message-resellers"
+      ? "message-resellers"
+      : "customers";
+  const tabBoxKind = activeTab === "messages" || activeTab === "message-resellers" ? "MESSAGE" : "PHOTO";
+  const customerSlots = allSlots.filter((slot) => !slot.is_reseller && slot.box_kind === "PHOTO");
+  const resellerSlots = allSlots.filter((slot) => slot.is_reseller && slot.box_kind === "PHOTO");
+  const resellerAssignableSlots = allSlots.filter(
+    (slot) => !slot.is_reseller && slot.box_kind === "PHOTO" && slot.status === "VACANT"
+  );
+  const messageSlots = allSlots.filter((slot) => !slot.is_reseller && slot.box_kind === "MESSAGE");
+  const messageResellerSlots = allSlots.filter((slot) => slot.is_reseller && slot.box_kind === "MESSAGE");
+  const messageResellerAssignableSlots = allSlots.filter(
+    (slot) => !slot.is_reseller && slot.box_kind === "MESSAGE" && slot.status === "VACANT"
+  );
+  const visibleSlots =
+    activeTab === "customers"
+      ? customerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="customer" />)
+      : activeTab === "resellers"
+      ? [
+          ...resellerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="reseller" />),
+          ...resellerAssignableSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="reseller-setup" />)
+        ]
+      : activeTab === "messages"
+      ? messageSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="customer" />)
+      : [
+          ...messageResellerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="reseller" />),
+          ...messageResellerAssignableSlots.map((slot) => (
+            <SlotCard key={slot.id} slot={slot} mode="reseller-setup" />
+          ))
+        ];
+  const activeTabTitle =
+    activeTab === "resellers"
+      ? "Resellers"
+      : activeTab === "messages"
+      ? "Message boxes"
+      : activeTab === "message-resellers"
+      ? "Message resellers"
+      : "Customer slots";
+  const isResellerTab = activeTab === "resellers" || activeTab === "message-resellers";
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-8">
@@ -96,9 +138,7 @@ export default async function AdminPage({
       <header className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-primary">Photo Box Portal</p>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {activeTab === "resellers" ? "Resellers" : "Customer slots"}
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{activeTabTitle}</h1>
         </div>
         <p className="text-sm text-muted-foreground">
           Provision, close, reopen, and manually recycle NFC event deliveries.
@@ -106,51 +146,50 @@ export default async function AdminPage({
       </header>
 
       <nav className="mb-6 flex flex-wrap gap-2">
-        <a
-          className={`rounded-md border px-4 py-2 text-sm font-medium ${
-            activeTab === "customers" ? "bg-primary text-primary-foreground" : "bg-white hover:bg-muted"
-          }`}
-          href="/admin"
-        >
-          Customer slots
-        </a>
-        <a
-          className={`rounded-md border px-4 py-2 text-sm font-medium ${
-            activeTab === "resellers" ? "bg-primary text-primary-foreground" : "bg-white hover:bg-muted"
-          }`}
-          href="/admin?tab=resellers"
-        >
-          Resellers
-        </a>
+        {[
+          { key: "customers", label: "Customer slots", href: "/admin" },
+          { key: "resellers", label: "Resellers", href: "/admin?tab=resellers" },
+          { key: "messages", label: "Message boxes", href: "/admin?tab=messages" },
+          { key: "message-resellers", label: "Message resellers", href: "/admin?tab=message-resellers" }
+        ].map((tab) => (
+          <a
+            className={`rounded-md border px-4 py-2 text-sm font-medium ${
+              activeTab === tab.key ? "bg-primary text-primary-foreground" : "bg-white hover:bg-muted"
+            }`}
+            href={tab.href}
+            key={tab.key}
+          >
+            {tab.label}
+          </a>
+        ))}
       </nav>
 
       <section className="mb-6 rounded-md border bg-white p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold">
-              {activeTab === "resellers" ? "Add reseller box" : "Add customer box"}
+              {isResellerTab
+                ? tabBoxKind === "MESSAGE"
+                  ? "Add message reseller"
+                  : "Add reseller box"
+                : tabBoxKind === "MESSAGE"
+                ? "Add message box"
+                : "Add customer box"}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {activeTab === "resellers"
+              {isResellerTab
                 ? "Create a reseller box with a stable NFC upload link."
-                : "Create another customer box for direct event provisioning."}
+                : "Create another box for direct event provisioning."}
             </p>
           </div>
           <div className="sm:min-w-96">
-            {activeTab === "resellers" ? <AddResellerBoxForm /> : <AddCustomerBoxForm />}
+            {isResellerTab ? <AddResellerBoxForm boxKind={tabBoxKind} /> : <AddCustomerBoxForm boxKind={tabBoxKind} />}
           </div>
         </div>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {activeTab === "customers"
-          ? customerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="customer" />)
-          : [
-              ...resellerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="reseller" />),
-              ...resellerAssignableSlots.map((slot) => (
-                <SlotCard key={slot.id} slot={slot} mode="reseller-setup" />
-              ))
-            ]}
+        {visibleSlots}
       </div>
     </main>
   );

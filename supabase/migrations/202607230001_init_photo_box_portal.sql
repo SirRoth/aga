@@ -12,6 +12,12 @@ exception
   when duplicate_object then null;
 end $$;
 
+do $$ begin
+  create type public.slot_box_kind as enum ('PHOTO', 'MESSAGE');
+exception
+  when duplicate_object then null;
+end $$;
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   role public.profile_role not null default 'admin',
@@ -23,6 +29,7 @@ create table if not exists public.customer_slots (
   slot_name text not null,
   storage_limit_bytes bigint not null default 2147483648 check (storage_limit_bytes > 0),
   storage_used_bytes bigint not null default 0 check (storage_used_bytes >= 0),
+  box_kind public.slot_box_kind not null default 'PHOTO',
   allow_videos boolean not null default false,
   is_reseller boolean not null default false,
   reseller_suspended boolean not null default false,
