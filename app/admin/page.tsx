@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
 import {
+  AddCustomerBoxForm,
+  AddResellerBoxForm,
   AdminAutoRefresh,
   CloseEventButton,
   DeleteResellerButton,
   ForcePurgeButton,
   ProvisionSlotForm,
+  RemoveBoxButton,
   ResellerSetupForm,
   ResellerSuspendButton,
   ReopenEventButton,
@@ -57,6 +60,7 @@ function SlotCard({ slot, mode }: { slot: CustomerSlot; mode: "customer" | "rese
             {slot.is_reseller ? <ResellerSuspendButton slot={slot} /> : null}
             <ForcePurgeButton slot={slot} />
             {slot.is_reseller ? <DeleteResellerButton slot={slot} /> : null}
+            <RemoveBoxButton slot={slot} />
           </div>
         </div>
       </CardContent>
@@ -119,6 +123,24 @@ export default async function AdminPage({
           Resellers
         </a>
       </nav>
+
+      <section className="mb-6 rounded-md border bg-white p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold">
+              {activeTab === "resellers" ? "Add reseller box" : "Add customer box"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {activeTab === "resellers"
+                ? "Create a reseller box with a stable NFC upload link."
+                : "Create another customer box for direct event provisioning."}
+            </p>
+          </div>
+          <div className="sm:min-w-96">
+            {activeTab === "resellers" ? <AddResellerBoxForm /> : <AddCustomerBoxForm />}
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {activeTab === "customers"

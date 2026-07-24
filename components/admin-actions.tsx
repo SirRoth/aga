@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Copy,
   HardDrive,
+  Plus,
   RefreshCcw,
   Rocket,
   ShieldCheck,
@@ -104,6 +105,68 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
   );
 }
 
+export function AddCustomerBoxForm() {
+  const [slotName, setSlotName] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    startTransition(async () => {
+      const response = await fetch("/api/admin/slots/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slotName })
+      });
+      if (response.ok) {
+        setSlotName("");
+        window.location.reload();
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <Input value={slotName} onChange={(event) => setSlotName(event.target.value)} placeholder="Box name" />
+      <Button onClick={submit} disabled={pending || !slotName.trim()}>
+        <Plus className="h-4 w-4" />
+        Add customer box
+      </Button>
+    </div>
+  );
+}
+
+export function AddResellerBoxForm() {
+  const [companyName, setCompanyName] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    startTransition(async () => {
+      const response = await fetch("/api/admin/slots/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ isReseller: true, resellerCompanyName: companyName })
+      });
+      if (response.ok) {
+        setCompanyName("");
+        window.location.reload();
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <Input
+        value={companyName}
+        onChange={(event) => setCompanyName(event.target.value)}
+        placeholder="Reseller company name"
+      />
+      <Button onClick={submit} disabled={pending || !companyName.trim()}>
+        <Plus className="h-4 w-4" />
+        Add reseller box
+      </Button>
+    </div>
+  );
+}
+
 export function ResellerSetupForm({ slot }: { slot: CustomerSlot }) {
   const [companyName, setCompanyName] = useState("");
   const [pending, startTransition] = useTransition();
@@ -132,6 +195,43 @@ export function ResellerSetupForm({ slot }: { slot: CustomerSlot }) {
         Create reseller box
       </Button>
     </div>
+  );
+}
+
+export function RemoveBoxButton({ slot }: { slot: CustomerSlot }) {
+  const [pending, startTransition] = useTransition();
+  const canRemove = slot.status === "VACANT" && !slot.storage_prefix && slot.storage_used_bytes === 0;
+
+  function removeBox() {
+    if (!window.confirm(`Remove ${slot.slot_name} from the admin portal?`)) return;
+
+    startTransition(async () => {
+      const response = await fetch("/api/admin/slots/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slotId: slot.id })
+      });
+
+      if (response.ok) {
+        window.location.reload();
+        return;
+      }
+
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      window.alert(data?.error ?? "Could not remove this box.");
+    });
+  }
+
+  return (
+    <Button
+      variant="outline"
+      onClick={removeBox}
+      disabled={!canRemove || pending}
+      title={canRemove ? "Remove box" : "Recycle this box before removing it"}
+    >
+      <Trash2 className="h-4 w-4" />
+      Remove box
+    </Button>
   );
 }
 
