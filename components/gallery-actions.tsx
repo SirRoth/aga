@@ -40,13 +40,17 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={() => (window.location.href = `/api/download/zip?token=${token}`)}>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap gap-3 rounded-[20px] border border-white/70 bg-[#fffaf3]/90 p-4 shadow-xl shadow-[#7f5a2d]/10 backdrop-blur">
+        <Button
+          className="bg-[#b98537] text-white hover:bg-[#a87530]"
+          onClick={() => (window.location.href = `/api/download/zip?token=${token}`)}
+        >
           <Download className="h-4 w-4" />
           Download Zip
         </Button>
         <Button
+          className="border-[#d8b98e] bg-white/65 text-[#2f241d] hover:bg-[#f3e6d4]"
           variant="outline"
           disabled={selected.length === 0}
           onClick={() => (window.location.href = `/api/download/zip?token=${token}&${selectedQuery}`)}
@@ -56,12 +60,15 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
         </Button>
       </div>
       {photos.length ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {photos.map((photo) => (
-            <label className="group relative overflow-hidden rounded-lg border bg-white" key={photo.id}>
+            <label
+              className="group relative overflow-hidden rounded-[18px] border border-white/70 bg-[#fffaf3]/90 shadow-lg shadow-[#7f5a2d]/10"
+              key={photo.id}
+            >
               <input
                 checked={selected.includes(photo.id)}
-                className="absolute left-2 top-2 z-10 h-5 w-5"
+                className="absolute left-3 top-3 z-10 h-5 w-5 accent-[#b98537]"
                 onChange={() => toggle(photo.id)}
                 type="checkbox"
               />
@@ -80,12 +87,14 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
                   src={`/api/download?token=${token}&photoId=${photo.id}`}
                 />
               )}
-              <span className="block truncate px-3 py-2 text-xs">{photo.file_name}</span>
+              <span className="block truncate px-3 py-3 text-xs font-medium text-[#4a3b32]">{photo.file_name}</span>
             </label>
           ))}
         </div>
       ) : (
-        <p className="rounded-lg border bg-card p-5">No photos have been uploaded yet.</p>
+        <p className="rounded-[20px] border border-white/70 bg-[#fffaf3]/90 p-6 text-[#4a3b32] shadow-xl shadow-[#7f5a2d]/10">
+          No photos have been uploaded yet.
+        </p>
       )}
     </div>
   );
