@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { bytesToHuman } from "@/lib/utils";
@@ -55,6 +55,25 @@ export function UploadForm({
   const [uploadingFileName, setUploadingFileName] = useState("");
   const [pending, startTransition] = useTransition();
   const usedPercent = Math.min((usedBytes / storageLimitBytes) * 100, 100);
+
+  useEffect(() => {
+    async function refreshStorage() {
+      const response = await fetch(`/api/upload/status?uploadSlug=${encodeURIComponent(uploadSlug)}`, {
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+
+      const status = await response.json();
+      if (typeof status.storageUsedBytes === "number") setUsedBytes(status.storageUsedBytes);
+    }
+
+    refreshStorage();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") refreshStorage();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [uploadSlug]);
 
   function submit(formData: FormData) {
     setMessage("");
