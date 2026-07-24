@@ -1,9 +1,43 @@
 import { Readable } from "node:stream";
 import { google } from "googleapis";
 
+function normalizePrivateKey(privateKey: string) {
+  return privateKey
+    .trim()
+    .replace(/^"|"$/g, "")
+    .replace(/\\n/g, "\n");
+}
+
+function getServiceAccountCredentials() {
+  const json = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const base64Json = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64;
+
+  if (base64Json) {
+    const credentials = JSON.parse(Buffer.from(base64Json, "base64").toString("utf8"));
+    return {
+      clientEmail: credentials.client_email as string | undefined,
+      privateKey: credentials.private_key ? normalizePrivateKey(credentials.private_key) : undefined
+    };
+  }
+
+  if (json) {
+    const credentials = JSON.parse(json);
+    return {
+      clientEmail: credentials.client_email as string | undefined,
+      privateKey: credentials.private_key ? normalizePrivateKey(credentials.private_key) : undefined
+    };
+  }
+
+  return {
+    clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    privateKey: process.env.GOOGLE_PRIVATE_KEY
+      ? normalizePrivateKey(process.env.GOOGLE_PRIVATE_KEY)
+      : undefined
+  };
+}
+
 function getDriveClient() {
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const { clientEmail, privateKey } = getServiceAccountCredentials();
 
   if (!privateKey || !clientEmail) {
     throw new Error("Missing Google service account credentials.");
