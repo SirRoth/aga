@@ -3,7 +3,7 @@ import { UploadForm } from "@/components/upload-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
-import { bytesToHuman, isWithinActiveWindow } from "@/lib/utils";
+import { isWithinActiveWindow } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -30,15 +30,16 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
         </CardHeader>
         <CardContent>
           {active && hasCapacity ? (
-            <UploadForm uploadSlug={params.upload_slug} />
+            <UploadForm
+              uploadSlug={params.upload_slug}
+              storageLimitBytes={customerSlot.storage_limit_bytes}
+              storageUsedBytes={customerSlot.storage_used_bytes}
+            />
           ) : (
             <p className="rounded-md bg-muted p-4 text-sm">
               This upload link is no longer accepting photos. Please contact the event host.
             </p>
           )}
-          <p className="mt-4 text-xs text-muted-foreground">
-            {bytesToHuman(customerSlot.storage_used_bytes)} of {bytesToHuman(customerSlot.storage_limit_bytes)} used.
-          </p>
         </CardContent>
       </Card>
     </main>

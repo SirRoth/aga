@@ -118,12 +118,17 @@ export async function PUT(request: Request) {
 
   if (photoError) throw photoError;
 
+  const storageUsedBytes = slot.storage_used_bytes + totalBytes;
   const { error: updateError } = await supabase
     .from("customer_slots")
-    .update({ storage_used_bytes: slot.storage_used_bytes + totalBytes })
+    .update({ storage_used_bytes: storageUsedBytes })
     .eq("id", slot.id);
 
   if (updateError) throw updateError;
 
-  return NextResponse.json({ uploaded: uploads.length });
+  return NextResponse.json({
+    uploaded: uploads.length,
+    storageUsedBytes,
+    storageLimitBytes: slot.storage_limit_bytes
+  });
 }
