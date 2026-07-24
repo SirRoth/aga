@@ -11,67 +11,83 @@ export function UploadForm({ uploadSlug }: { uploadSlug: string }) {
   function submit(formData: FormData) {
     setMessage("");
     startTransition(async () => {
-      const files = formData.getAll("files").filter((value): value is File => value instanceof File);
-      if (files.length === 0) {
-        setMessage("Choose at least one photo.");
-        return;
-      }
+      try {
+        const files = formData.getAll("files").filter((value): value is File => value instanceof File);
+        if (files.length === 0) {
+          setMessage("Choose at least one photo.");
+          return;
+        }
 
-      const presignResponse = await fetch("/api/upload/presign", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          uploadSlug,
-          files: files.map((file) => ({
-            fileName: file.name,
-            mimeType: file.type || "application/octet-stream",
-            sizeBytes: file.size
-          }))
-        })
-      });
+        const uploadFiles = files.map((file) => ({
+          file,
+          fileName: file.name || "mobile-photo",
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size
+        }));
 
-      const presignResult = await presignResponse.json();
-      if (!presignResponse.ok) {
-        setMessage(presignResult.error ?? "Upload failed.");
-        return;
-      }
+        const presignResponse = await fetch("/api/upload/presign", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            uploadSlug,
+            files: uploadFiles.map(({ fileName, mimeType, sizeBytes }) => ({
+              fileName,
+              mimeType,
+              sizeBytes
+            }))
+          })
+        });
 
-      await Promise.all(
-        presignResult.uploads.map(
-          async (upload: { uploadUrl: string; mimeType: string }, index: number) => {
+        const presignResult = await presignResponse.json();
+        if (!presignResponse.ok) {
+          setMessage(presignResult.error ?? "Upload failed.");
+          return;
+        }
+
+        for (const [index, upload] of presignResult.uploads.entries() as IterableIterator<
+          [number, { uploadUrl: string; mimeType: string }]
+        >) {
+          const selectedFile = uploadFiles[index];
+          try {
             const response = await fetch(upload.uploadUrl, {
               method: "PUT",
               headers: { "content-type": upload.mimeType },
-              body: files[index]
+              body: selectedFile.file
             });
 
-            if (!response.ok) throw new Error(`R2 upload failed for ${files[index].name}.`);
+            if (!response.ok) throw new Error(`R2 returned ${response.status}.`);
+          } catch (error) {
+            const detail = error instanceof Error ? error.message : "Network request failed.";
+            setMessage(`Upload failed for ${selectedFile.fileName}: ${detail}`);
+            return;
           }
-        )
-      );
+        }
 
-      const completeResponse = await fetch("/api/upload/presign", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          uploadSlug,
-          uploads: presignResult.uploads.map(
-            (upload: { objectKey: string; fileName: string; mimeType: string; sizeBytes: number }) => ({
-              objectKey: upload.objectKey,
-              fileName: upload.fileName,
-              mimeType: upload.mimeType,
-              sizeBytes: upload.sizeBytes
-            })
-          )
-        })
-      });
+        const completeResponse = await fetch("/api/upload/presign", {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            uploadSlug,
+            uploads: presignResult.uploads.map(
+              (upload: { objectKey: string; fileName: string; mimeType: string; sizeBytes: number }) => ({
+                objectKey: upload.objectKey,
+                fileName: upload.fileName,
+                mimeType: upload.mimeType,
+                sizeBytes: upload.sizeBytes
+              })
+            )
+          })
+        });
 
-      const completeResult = await completeResponse.json();
-      setMessage(
-        completeResponse.ok
-          ? `Uploaded ${completeResult.uploaded} file(s).`
-          : completeResult.error ?? "Upload failed."
-      );
+        const completeResult = await completeResponse.json();
+        setMessage(
+          completeResponse.ok
+            ? `Uploaded ${completeResult.uploaded} file(s).`
+            : completeResult.error ?? "Upload failed."
+        );
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Upload failed.");
+      }
     });
   }
 
