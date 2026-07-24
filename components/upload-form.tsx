@@ -10,14 +10,68 @@ export function UploadForm({ uploadSlug }: { uploadSlug: string }) {
 
   function submit(formData: FormData) {
     setMessage("");
-    formData.set("uploadSlug", uploadSlug);
     startTransition(async () => {
-      const response = await fetch("/api/upload", {
+      const files = formData.getAll("files").filter((value): value is File => value instanceof File);
+      if (files.length === 0) {
+        setMessage("Choose at least one photo.");
+        return;
+      }
+
+      const presignResponse = await fetch("/api/upload/presign", {
         method: "POST",
-        body: formData
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          uploadSlug,
+          files: files.map((file) => ({
+            fileName: file.name,
+            mimeType: file.type || "application/octet-stream",
+            sizeBytes: file.size
+          }))
+        })
       });
-      const result = await response.json();
-      setMessage(response.ok ? `Uploaded ${result.uploaded} file(s).` : result.error ?? "Upload failed.");
+
+      const presignResult = await presignResponse.json();
+      if (!presignResponse.ok) {
+        setMessage(presignResult.error ?? "Upload failed.");
+        return;
+      }
+
+      await Promise.all(
+        presignResult.uploads.map(
+          async (upload: { uploadUrl: string; mimeType: string }, index: number) => {
+            const response = await fetch(upload.uploadUrl, {
+              method: "PUT",
+              headers: { "content-type": upload.mimeType },
+              body: files[index]
+            });
+
+            if (!response.ok) throw new Error(`R2 upload failed for ${files[index].name}.`);
+          }
+        )
+      );
+
+      const completeResponse = await fetch("/api/upload/presign", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          uploadSlug,
+          uploads: presignResult.uploads.map(
+            (upload: { objectKey: string; fileName: string; mimeType: string; sizeBytes: number }) => ({
+              objectKey: upload.objectKey,
+              fileName: upload.fileName,
+              mimeType: upload.mimeType,
+              sizeBytes: upload.sizeBytes
+            })
+          )
+        })
+      });
+
+      const completeResult = await completeResponse.json();
+      setMessage(
+        completeResponse.ok
+          ? `Uploaded ${completeResult.uploaded} file(s).`
+          : completeResult.error ?? "Upload failed."
+      );
     });
   }
 

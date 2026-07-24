@@ -1,7 +1,7 @@
 import { PassThrough, Readable } from "node:stream";
 import archiver from "archiver";
 import { NextResponse } from "next/server";
-import { getDownloadStream } from "@/lib/gdrive";
+import { getObjectStream } from "@/lib/r2";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot, Photo } from "@/lib/types";
 import { isWithinActiveWindow } from "@/lib/utils";
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   queueMicrotask(async () => {
     try {
       for (const photo of (photos ?? []) as Photo[]) {
-        const stream = await getDownloadStream(photo.gdrive_file_id);
+        const stream = await getObjectStream(photo.object_key);
         archive.append(stream, { name: photo.file_name });
       }
       await archive.finalize();

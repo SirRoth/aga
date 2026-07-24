@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { createEventFolder } from "@/lib/gdrive";
+import { createEventPrefix } from "@/lib/r2";
 import { createSupabaseAdminClient, requireAdmin } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -24,9 +24,9 @@ export async function POST(request: Request) {
   if (!slot) return NextResponse.json({ error: "Vacant slot not found." }, { status: 404 });
 
   const cleanEventName = String(eventName).trim();
-  const folderId = await createEventFolder(`${slot.slot_name} - ${cleanEventName}`);
   const uploadSlug = nanoid(14);
   const downloadToken = nanoid(28);
+  const storagePrefix = createEventPrefix(slot.id, cleanEventName);
 
   const { error } = await supabase
     .from("customer_slots")
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       event_name: cleanEventName,
       upload_slug: uploadSlug,
       download_token: downloadToken,
-      gdrive_folder_id: folderId,
+      storage_prefix: storagePrefix,
       event_start_at: new Date().toISOString(),
       storage_used_bytes: 0
     })

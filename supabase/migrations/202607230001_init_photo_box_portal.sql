@@ -27,7 +27,7 @@ create table if not exists public.customer_slots (
   event_name text,
   upload_slug text unique,
   download_token text unique,
-  gdrive_folder_id text,
+  storage_prefix text,
   event_start_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -35,7 +35,7 @@ create table if not exists public.customer_slots (
 create table if not exists public.photos (
   id uuid primary key default gen_random_uuid(),
   slot_id uuid not null references public.customer_slots(id) on delete cascade,
-  gdrive_file_id text not null,
+  object_key text not null,
   file_name text not null,
   mime_type text not null,
   file_size_bytes bigint not null check (file_size_bytes >= 0),

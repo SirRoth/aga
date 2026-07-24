@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
-import { getDownloadStream } from "@/lib/gdrive";
+import { getObjectStream } from "@/lib/r2";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot, Photo } from "@/lib/types";
 import { isWithinActiveWindow } from "@/lib/utils";
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   if (!photo) return NextResponse.json({ error: "Photo not found." }, { status: 404 });
 
   const photoRow = photo as Photo;
-  const stream = await getDownloadStream(photoRow.gdrive_file_id);
+  const stream = await getObjectStream(photoRow.object_key);
   const webStream = Readable.toWeb(stream) as ReadableStream;
 
   return new Response(webStream, {

@@ -102,7 +102,7 @@ export function CloseEventButton({ slot }: { slot: CustomerSlot }) {
   const [pending, startTransition] = useTransition();
 
   function closeEvent() {
-    if (!window.confirm(`Close ${slot.slot_name}? Uploads and downloads will stop, but files stay on Drive.`)) return;
+    if (!window.confirm(`Close ${slot.slot_name}? Uploads and downloads will stop, but files stay in R2.`)) return;
     startTransition(async () => {
       await fetch("/api/admin/slots/expire", {
         method: "POST",

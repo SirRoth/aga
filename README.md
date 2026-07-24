@@ -1,6 +1,6 @@
 # Photo Box Portal
 
-Temporary NFC photo upload and customer delivery portal built with Next.js, Supabase, and Google Drive.
+Temporary NFC photo upload and customer delivery portal built with Next.js, Supabase, and Cloudflare R2.
 
 ## Local Setup
 
@@ -10,7 +10,7 @@ Temporary NFC photo upload and customer delivery portal built with Next.js, Supa
 npm install
 ```
 
-2. Copy `.env.example` to `.env` and fill in Supabase and Google Drive credentials.
+2. Copy `.env.example` to `.env` and fill in Supabase and Cloudflare R2 credentials.
 
 3. Run the Supabase migration in `supabase/migrations`.
 

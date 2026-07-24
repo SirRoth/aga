@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deleteFolderAndContents } from "@/lib/gdrive";
+import { deletePrefix } from "@/lib/r2";
 import type { CustomerSlot } from "@/lib/types";
 
 export async function recycleSlot(supabase: SupabaseClient, slot: CustomerSlot) {
-  if (slot.gdrive_folder_id) {
-    await deleteFolderAndContents(slot.gdrive_folder_id);
+  if (slot.storage_prefix) {
+    await deletePrefix(slot.storage_prefix);
   }
 
   await supabase.from("photos").delete().eq("slot_id", slot.id);
@@ -16,7 +16,7 @@ export async function recycleSlot(supabase: SupabaseClient, slot: CustomerSlot) 
       event_name: null,
       upload_slug: null,
       download_token: null,
-      gdrive_folder_id: null,
+      storage_prefix: null,
       event_start_at: null,
       storage_used_bytes: 0
     })
