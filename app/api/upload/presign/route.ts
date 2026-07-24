@@ -28,13 +28,16 @@ async function getActiveSlot(uploadSlug: string) {
   if (!slot) return { supabase, slot: null };
 
   const customerSlot = slot as CustomerSlot;
+  if (customerSlot.is_reseller && customerSlot.reseller_suspended) {
+    return { supabase, slot: null, suspended: true };
+  }
+
   const active =
     customerSlot.status === "ACTIVE" &&
-    !customerSlot.reseller_suspended &&
     Boolean(customerSlot.storage_prefix) &&
     isWithinActiveWindow(customerSlot.event_start_at);
 
-  return { supabase, slot: active ? customerSlot : null };
+  return { supabase, slot: active ? customerSlot : null, suspended: false };
 }
 
 export async function POST(request: Request) {
@@ -47,7 +50,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "uploadSlug and files are required." }, { status: 400 });
   }
 
-  const { slot } = await getActiveSlot(uploadSlug);
+  const { slot, suspended } = await getActiveSlot(uploadSlug);
+  if (suspended) {
+    return NextResponse.json(
+      { error: "This reseller account is suspended. Please contact your service provider." },
+      { status: 403 }
+    );
+  }
   if (!slot?.storage_prefix) {
     return NextResponse.json({ error: "This upload link has expired." }, { status: 403 });
   }
@@ -100,7 +109,13 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "uploadSlug and uploads are required." }, { status: 400 });
   }
 
-  const { supabase, slot } = await getActiveSlot(uploadSlug);
+  const { supabase, slot, suspended } = await getActiveSlot(uploadSlug);
+  if (suspended) {
+    return NextResponse.json(
+      { error: "This reseller account is suspended. Please contact your service provider." },
+      { status: 403 }
+    );
+  }
   if (!slot?.storage_prefix) {
     return NextResponse.json({ error: "This upload link has expired." }, { status: 403 });
   }

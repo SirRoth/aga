@@ -68,6 +68,7 @@ export function UploadForm({
 
       const status = await response.json();
       if (typeof status.storageUsedBytes === "number") setUsedBytes(status.storageUsedBytes);
+      if (status.suspended && typeof status.message === "string") setMessage(status.message);
     }
 
     refreshStorage();

@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { data: slot, error } = await supabase
     .from("customer_slots")
-    .select("status,event_start_at,reseller_suspended,storage_limit_bytes,storage_used_bytes")
+    .select("is_reseller,status,event_start_at,reseller_suspended,storage_limit_bytes,storage_used_bytes")
     .eq("upload_slug", uploadSlug)
     .maybeSingle();
 
@@ -23,14 +23,22 @@ export async function GET(request: Request) {
 
   const customerSlot = slot as Pick<
     CustomerSlot,
-    "event_start_at" | "reseller_suspended" | "status" | "storage_limit_bytes" | "storage_used_bytes"
+    | "event_start_at"
+    | "is_reseller"
+    | "reseller_suspended"
+    | "status"
+    | "storage_limit_bytes"
+    | "storage_used_bytes"
   >;
+  const suspended = customerSlot.is_reseller && customerSlot.reseller_suspended;
 
   return NextResponse.json({
     active:
       customerSlot.status === "ACTIVE" &&
-      !customerSlot.reseller_suspended &&
+      !suspended &&
       isWithinActiveWindow(customerSlot.event_start_at),
+    suspended,
+    message: suspended ? "This reseller account is suspended. Please contact your service provider." : null,
     storageLimitBytes: customerSlot.storage_limit_bytes,
     storageUsedBytes: customerSlot.storage_used_bytes
   });

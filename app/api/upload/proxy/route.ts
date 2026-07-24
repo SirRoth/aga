@@ -32,10 +32,16 @@ export async function POST(request: Request) {
   if (error) throw error;
 
   const customerSlot = slot as CustomerSlot | null;
+  if (customerSlot?.is_reseller && customerSlot.reseller_suspended) {
+    return NextResponse.json(
+      { error: "This reseller account is suspended. Please contact your service provider." },
+      { status: 403 }
+    );
+  }
+
   if (
     !customerSlot ||
     customerSlot.status !== "ACTIVE" ||
-    customerSlot.reseller_suspended ||
     !customerSlot.storage_prefix ||
     !isWithinActiveWindow(customerSlot.event_start_at)
   ) {
