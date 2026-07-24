@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import {
   AdminAutoRefresh,
   CloseEventButton,
+  DeleteResellerButton,
   ForcePurgeButton,
   ProvisionSlotForm,
   ResellerSetupForm,
+  ResellerSuspendButton,
   ReopenEventButton,
   SlotLinks,
   StorageLimitForm
@@ -26,7 +28,9 @@ function SlotCard({ slot, mode }: { slot: CustomerSlot; mode: "customer" | "rese
         <div>
           <CardTitle>{slot.slot_name}</CardTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "reseller-setup"
+            {slot.reseller_suspended
+              ? "Suspended for reseller account"
+              : mode === "reseller-setup"
               ? "Available for reseller assignment"
               : slot.event_name ?? (slot.is_reseller ? "No active reseller event" : "No active event")}
           </p>
@@ -50,7 +54,9 @@ function SlotCard({ slot, mode }: { slot: CustomerSlot; mode: "customer" | "rese
           <div className="flex flex-wrap gap-2">
             <CloseEventButton slot={slot} />
             <ReopenEventButton slot={slot} />
+            {slot.is_reseller ? <ResellerSuspendButton slot={slot} /> : null}
             <ForcePurgeButton slot={slot} />
+            {slot.is_reseller ? <DeleteResellerButton slot={slot} /> : null}
           </div>
         </div>
       </CardContent>

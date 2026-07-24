@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { data: slot, error } = await supabase
     .from("customer_slots")
-    .select("status,event_start_at,storage_limit_bytes,storage_used_bytes")
+    .select("status,event_start_at,reseller_suspended,storage_limit_bytes,storage_used_bytes")
     .eq("upload_slug", uploadSlug)
     .maybeSingle();
 
@@ -23,11 +23,14 @@ export async function GET(request: Request) {
 
   const customerSlot = slot as Pick<
     CustomerSlot,
-    "event_start_at" | "status" | "storage_limit_bytes" | "storage_used_bytes"
+    "event_start_at" | "reseller_suspended" | "status" | "storage_limit_bytes" | "storage_used_bytes"
   >;
 
   return NextResponse.json({
-    active: customerSlot.status === "ACTIVE" && isWithinActiveWindow(customerSlot.event_start_at),
+    active:
+      customerSlot.status === "ACTIVE" &&
+      !customerSlot.reseller_suspended &&
+      isWithinActiveWindow(customerSlot.event_start_at),
     storageLimitBytes: customerSlot.storage_limit_bytes,
     storageUsedBytes: customerSlot.storage_used_bytes
   });

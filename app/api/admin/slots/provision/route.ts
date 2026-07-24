@@ -22,6 +22,9 @@ export async function POST(request: Request) {
 
   if (slotError) throw slotError;
   if (!slot) return NextResponse.json({ error: "Vacant slot not found." }, { status: 404 });
+  if (slot.reseller_suspended) {
+    return NextResponse.json({ error: "Suspended reseller slots cannot be provisioned." }, { status: 423 });
+  }
 
   const cleanEventName = String(eventName).trim();
   const uploadSlug = slot.is_reseller && slot.upload_slug ? slot.upload_slug : nanoid(14);

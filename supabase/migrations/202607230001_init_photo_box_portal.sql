@@ -25,6 +25,7 @@ create table if not exists public.customer_slots (
   storage_used_bytes bigint not null default 0 check (storage_used_bytes >= 0),
   allow_videos boolean not null default false,
   is_reseller boolean not null default false,
+  reseller_suspended boolean not null default false,
   reseller_company_name text,
   status public.slot_status not null default 'VACANT',
   event_name text,

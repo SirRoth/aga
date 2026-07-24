@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     .from("customer_slots")
     .update({
       is_reseller: true,
+      reseller_suspended: false,
       reseller_company_name: cleanCompanyName,
       slot_name: cleanCompanyName,
       upload_slug: uploadSlug

@@ -19,7 +19,8 @@ export async function recycleSlot(supabase: SupabaseClient, slot: CustomerSlot) 
       storage_prefix: null,
       event_start_at: null,
       storage_used_bytes: 0,
-      allow_videos: false
+      allow_videos: false,
+      reseller_suspended: slot.is_reseller ? slot.reseller_suspended : false
     })
     .eq("id", slot.id);
 

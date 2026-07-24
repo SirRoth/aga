@@ -18,7 +18,10 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
   if (!slot) notFound();
 
   const customerSlot = slot as CustomerSlot;
-  const active = customerSlot.status === "ACTIVE" && isWithinActiveWindow(customerSlot.event_start_at);
+  const active =
+    customerSlot.status === "ACTIVE" &&
+    !customerSlot.reseller_suspended &&
+    isWithinActiveWindow(customerSlot.event_start_at);
   const hasCapacity = customerSlot.storage_used_bytes < customerSlot.storage_limit_bytes;
 
   return (

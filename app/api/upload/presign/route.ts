@@ -30,6 +30,7 @@ async function getActiveSlot(uploadSlug: string) {
   const customerSlot = slot as CustomerSlot;
   const active =
     customerSlot.status === "ACTIVE" &&
+    !customerSlot.reseller_suspended &&
     Boolean(customerSlot.storage_prefix) &&
     isWithinActiveWindow(customerSlot.event_start_at);
 

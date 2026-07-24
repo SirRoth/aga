@@ -2,7 +2,20 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckCircle2, Copy, HardDrive, RefreshCcw, Rocket, ShieldOff, Undo2, Video } from "lucide-react";
+import {
+  Ban,
+  Building2,
+  CheckCircle2,
+  Copy,
+  HardDrive,
+  RefreshCcw,
+  Rocket,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+  Undo2,
+  Video
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CustomerSlot } from "@/lib/types";
@@ -61,9 +74,12 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
           value={eventName}
           onChange={(event) => setEventName(event.target.value)}
           placeholder="Event name"
-          disabled={slot.status !== "VACANT"}
+          disabled={slot.status !== "VACANT" || slot.reseller_suspended}
         />
-        <Button onClick={submit} disabled={slot.status !== "VACANT" || pending || !eventName.trim()}>
+        <Button
+          onClick={submit}
+          disabled={slot.status !== "VACANT" || slot.reseller_suspended || pending || !eventName.trim()}
+        >
           <Rocket className="h-4 w-4" />
           Provision
         </Button>
@@ -72,7 +88,7 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
         <input
           checked={allowVideos}
           className="peer sr-only"
-          disabled={slot.status !== "VACANT"}
+          disabled={slot.status !== "VACANT" || slot.reseller_suspended}
           onChange={(event) => setAllowVideos(event.target.checked)}
           type="checkbox"
         />
@@ -81,6 +97,9 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
         </span>
         Allow video uploads
       </label>
+      {slot.reseller_suspended ? (
+        <p className="text-xs text-destructive">This reseller is suspended. Unsuspend before provisioning.</p>
+      ) : null}
     </div>
   );
 }
@@ -172,6 +191,65 @@ export function ForcePurgeButton({ slot }: { slot: CustomerSlot }) {
   );
 }
 
+export function ResellerSuspendButton({ slot }: { slot: CustomerSlot }) {
+  const [pending, startTransition] = useTransition();
+  if (!slot.is_reseller) return null;
+
+  const nextSuspended = !slot.reseller_suspended;
+
+  function toggleSuspension() {
+    const action = nextSuspended ? "Suspend" : "Unsuspend";
+    if (!window.confirm(`${action} ${slot.reseller_company_name ?? slot.slot_name}?`)) return;
+
+    startTransition(async () => {
+      await fetch("/api/admin/slots/reseller/suspend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slotId: slot.id, suspended: nextSuspended })
+      });
+      window.location.reload();
+    });
+  }
+
+  return (
+    <Button variant="outline" onClick={toggleSuspension} disabled={pending}>
+      {slot.reseller_suspended ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+      {slot.reseller_suspended ? "Unsuspend" : "Suspend"}
+    </Button>
+  );
+}
+
+export function DeleteResellerButton({ slot }: { slot: CustomerSlot }) {
+  const [pending, startTransition] = useTransition();
+  if (!slot.is_reseller) return null;
+
+  function deleteReseller() {
+    if (
+      !window.confirm(
+        `Delete reseller ${slot.reseller_company_name ?? slot.slot_name}? This purges the current event and frees the box for another reseller.`
+      )
+    ) {
+      return;
+    }
+
+    startTransition(async () => {
+      await fetch("/api/admin/slots/reseller/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slotId: slot.id })
+      });
+      window.location.reload();
+    });
+  }
+
+  return (
+    <Button variant="destructive" onClick={deleteReseller} disabled={pending}>
+      <Trash2 className="h-4 w-4" />
+      Delete reseller
+    </Button>
+  );
+}
+
 export function CloseEventButton({ slot }: { slot: CustomerSlot }) {
   const [pending, startTransition] = useTransition();
 
@@ -233,6 +311,12 @@ export function SlotLinks({ slot }: { slot: CustomerSlot }) {
         <Video className="h-4 w-4" />
         {slot.allow_videos ? "Photos and videos enabled" : "Photos only"}
       </div>
+      {slot.is_reseller && slot.reseller_suspended ? (
+        <div className="flex items-center gap-2 text-xs font-medium text-destructive">
+          <Ban className="h-4 w-4" />
+          Reseller suspended
+        </div>
+      ) : null}
       {links.map((link) => (
         <button
           className="flex min-w-0 items-center justify-between rounded-md border bg-white px-3 py-2 text-left"

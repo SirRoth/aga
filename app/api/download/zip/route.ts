@@ -23,7 +23,12 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   const customerSlot = slot as CustomerSlot | null;
-  if (!customerSlot || customerSlot.status !== "ACTIVE" || !isWithinActiveWindow(customerSlot.event_start_at)) {
+  if (
+    !customerSlot ||
+    customerSlot.status !== "ACTIVE" ||
+    customerSlot.reseller_suspended ||
+    !isWithinActiveWindow(customerSlot.event_start_at)
+  ) {
     return NextResponse.json({ error: "Download link expired." }, { status: 403 });
   }
 

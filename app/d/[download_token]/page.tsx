@@ -17,7 +17,10 @@ export default async function DownloadPage({ params }: { params: { download_toke
   if (!slot) notFound();
 
   const customerSlot = slot as CustomerSlot;
-  const active = customerSlot.status === "ACTIVE" && isWithinActiveWindow(customerSlot.event_start_at);
+  const active =
+    customerSlot.status === "ACTIVE" &&
+    !customerSlot.reseller_suspended &&
+    isWithinActiveWindow(customerSlot.event_start_at);
 
   const { data: photos } = await supabase
     .from("photos")
