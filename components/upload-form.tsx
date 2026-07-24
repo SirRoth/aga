@@ -53,6 +53,7 @@ export function UploadForm({
   const [usedBytes, setUsedBytes] = useState(storageUsedBytes);
   const [progressPercent, setProgressPercent] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState("");
+  const [selectedLabel, setSelectedLabel] = useState("No file chosen");
   const [pending, startTransition] = useTransition();
   const usedPercent = Math.min((usedBytes / storageLimitBytes) * 100, 100);
 
@@ -188,39 +189,67 @@ export function UploadForm({
   }
 
   return (
-    <form action={submit} className="grid gap-4">
-      <div className="rounded-md border bg-white p-4">
-        <div className="mb-2 flex justify-between text-sm">
+    <form action={submit} className="grid gap-5">
+      <div>
+        <div className="mb-2 flex justify-between text-sm text-[#9b8069]">
           <span>{bytesToHuman(usedBytes)} stored</span>
           <span>{bytesToHuman(storageLimitBytes)} limit</span>
         </div>
-        <div className="h-2 overflow-hidden rounded bg-muted">
-          <div className="h-full bg-primary transition-all" style={{ width: `${usedPercent}%` }} />
+        <div className="h-2 overflow-hidden rounded-full bg-[#eadbc9]">
+          <div
+            className="h-full rounded-full bg-[#b98537] transition-all duration-500"
+            style={{ width: `${usedPercent}%` }}
+          />
         </div>
       </div>
-      <input
-        className="block w-full rounded-md border bg-white p-3 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
-        multiple
-        name="files"
-        type="file"
-        accept="image/*"
-      />
-      <Button disabled={pending} type="submit">
+
+      <label className="flex min-h-24 cursor-pointer flex-col gap-4 rounded-xl border border-[#e5d2ba] bg-white/50 p-3 text-[#2f241d] shadow-inner shadow-white/40 sm:min-h-20 sm:flex-row sm:items-center">
+        <span className="inline-flex h-14 shrink-0 items-center justify-center rounded-lg bg-[#bd873d] px-7 text-base font-semibold text-white shadow-sm">
+          Choose files
+        </span>
+        <span className="min-w-0 truncate px-1 text-base sm:text-lg">{selectedLabel}</span>
+        <input
+          className="sr-only"
+          multiple
+          name="files"
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            const files = Array.from(event.currentTarget.files ?? []);
+            if (!files.length) {
+              setSelectedLabel("No file chosen");
+              return;
+            }
+            setSelectedLabel(files.length === 1 ? files[0].name : `${files.length} files selected`);
+          }}
+        />
+      </label>
+
+      <Button
+        className="h-16 rounded-lg bg-[#b98537] text-lg font-semibold text-white shadow-lg shadow-[#7f5a2d]/15 hover:bg-[#a87530]"
+        disabled={pending}
+        type="submit"
+      >
         <Upload className="h-4 w-4" />
         {pending ? "Uploading..." : "Upload photos"}
       </Button>
       {pending ? (
-        <div className="rounded-md border bg-white p-4">
-          <div className="mb-2 flex justify-between text-sm">
+        <div className="rounded-xl border border-[#e5d2ba] bg-white/55 p-4">
+          <div className="mb-2 flex justify-between gap-3 text-sm text-[#6e5543]">
             <span className="truncate">{uploadingFileName || "Preparing upload..."}</span>
             <span>{progressPercent}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded bg-muted">
-            <div className="h-full bg-secondary transition-all" style={{ width: `${progressPercent}%` }} />
+          <div className="h-2 overflow-hidden rounded-full bg-[#eadbc9]">
+            <div
+              className="h-full rounded-full bg-[#d8a24d] transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
         </div>
       ) : null}
-      {message ? <p className="rounded-md bg-muted p-3 text-sm">{message}</p> : null}
+      {message ? (
+        <p className="rounded-lg border border-[#e5d2ba] bg-white/65 p-3 text-sm text-[#4a3b32]">{message}</p>
+      ) : null}
     </form>
   );
 }
