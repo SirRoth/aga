@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   if (!slot) return NextResponse.json({ error: "Vacant slot not found." }, { status: 404 });
 
   const cleanEventName = String(eventName).trim();
-  const uploadSlug = nanoid(14);
+  const uploadSlug = slot.is_reseller && slot.upload_slug ? slot.upload_slug : nanoid(14);
   const downloadToken = nanoid(28);
   const storagePrefix = createEventPrefix(slot.id, cleanEventName);
 

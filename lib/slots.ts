@@ -14,7 +14,7 @@ export async function recycleSlot(supabase: SupabaseClient, slot: CustomerSlot) 
     .update({
       status: "VACANT",
       event_name: null,
-      upload_slug: null,
+      upload_slug: slot.is_reseller ? slot.upload_slug : null,
       download_token: null,
       storage_prefix: null,
       event_start_at: null,

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Copy, HardDrive, RefreshCcw, Rocket, ShieldOff, Undo2, Video } from "lucide-react";
+import { Building2, CheckCircle2, Copy, HardDrive, RefreshCcw, Rocket, ShieldOff, Undo2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CustomerSlot } from "@/lib/types";
@@ -81,6 +81,37 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
         </span>
         Allow video uploads
       </label>
+    </div>
+  );
+}
+
+export function ResellerSetupForm({ slot }: { slot: CustomerSlot }) {
+  const [companyName, setCompanyName] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    startTransition(async () => {
+      await fetch("/api/admin/slots/reseller", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slotId: slot.id, companyName })
+      });
+      window.location.reload();
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <Input
+        value={companyName}
+        onChange={(event) => setCompanyName(event.target.value)}
+        placeholder="Reseller company name"
+        disabled={slot.status !== "VACANT"}
+      />
+      <Button onClick={submit} disabled={slot.status !== "VACANT" || pending || !companyName.trim()}>
+        <Building2 className="h-4 w-4" />
+        Create reseller box
+      </Button>
     </div>
   );
 }
@@ -187,14 +218,14 @@ export function ReopenEventButton({ slot }: { slot: CustomerSlot }) {
 }
 
 export function SlotLinks({ slot }: { slot: CustomerSlot }) {
-  if (!slot.upload_slug || !slot.download_token) {
+  if (!slot.upload_slug && !slot.download_token) {
     return <span className="text-sm text-muted-foreground">Links appear after provisioning.</span>;
   }
 
   const links = [
-    { label: "NFC", href: `/u/${slot.upload_slug}` },
-    { label: "Download", href: `/d/${slot.download_token}` }
-  ];
+    slot.upload_slug ? { label: "NFC", href: `/u/${slot.upload_slug}` } : null,
+    slot.download_token ? { label: "Download", href: `/d/${slot.download_token}` } : null
+  ].filter(Boolean) as { label: string; href: string }[];
 
   return (
     <div className="grid gap-2 text-sm">
