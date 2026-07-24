@@ -30,7 +30,7 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
               {customerSlot.event_name}
             </p>
             <h1 className="mt-7 font-serif text-4xl font-semibold leading-tight text-[#2d211a] sm:text-5xl">
-              Upload event photos
+              Upload here!
             </h1>
             <div className="mt-5 h-px w-full bg-gradient-to-r from-[#b98537] via-[#dfcaa8] to-transparent" />
 
@@ -39,8 +39,8 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
                 <Camera className="h-7 w-7" />
               </div>
               <p className="text-lg leading-8 text-[#352b25]">
-                We&apos;d love to see the memories you captured. Upload your photos from the event and help us
-                relive the moments together.
+                We&apos;d love to see the memories you captured. Upload your photos and videos from the event and
+                help us relive the moments together.
               </p>
             </div>
 
