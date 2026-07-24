@@ -36,10 +36,8 @@ export default async function DownloadPage({ params }: { params: { download_toke
         <p className="rounded-lg border bg-card p-5">
           This event download link has expired. Please contact support if you need access to backups.
         </p>
-      ) : photos?.length ? (
-        <GalleryActions token={params.download_token} photos={photos as Photo[]} />
       ) : (
-        <p className="rounded-lg border bg-card p-5">No photos have been uploaded yet.</p>
+        <GalleryActions token={params.download_token} photos={(photos ?? []) as Photo[]} />
       )}
     </main>
   );
