@@ -1,0 +1,13 @@
+.next
+node_modules
+.npm-cache
+.npm-cache-fresh
+.env
+.env*.local
+dist
+coverage
+*.tsbuildinfo
+*.log
+current_logs.md
+dev-server.log
+server.log
