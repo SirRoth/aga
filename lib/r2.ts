@@ -21,6 +21,7 @@ function getR2Client() {
   return new S3Client({
     region: "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    requestChecksumCalculation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId,
       secretAccessKey
@@ -58,8 +59,7 @@ export async function createPresignedUploadUrl(objectKey: string, mimeType: stri
   const command = new PutObjectCommand({
     Bucket: getBucketName(),
     Key: objectKey,
-    ContentType: mimeType,
-    ContentLength: sizeBytes
+    ContentType: mimeType
   });
 
   return getSignedUrl(getR2Client(), command, { expiresIn: 60 * 10 });
