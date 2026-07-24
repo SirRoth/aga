@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Ban,
   Building2,
   CheckCircle2,
   Copy,
+  Download,
   HardDrive,
   Plus,
+  QrCode,
   RefreshCcw,
   Rocket,
   ShieldCheck,
@@ -24,6 +27,52 @@ import type { CustomerSlot } from "@/lib/types";
 function absoluteUrl(path: string) {
   if (typeof window === "undefined") return path;
   return `${window.location.origin}${path}`;
+}
+
+function NfcQrCode({ href, label }: { href: string; label: string }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [url, setUrl] = useState("");
+
+  useEffect(() => {
+    setUrl(absoluteUrl(href));
+  }, [href]);
+
+  function downloadQr() {
+    if (!svgRef.current || !url) return;
+
+    const serializer = new XMLSerializer();
+    const svg = serializer.serializeToString(svgRef.current);
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-qr-code.svg`;
+    anchor.click();
+    URL.revokeObjectURL(objectUrl);
+  }
+
+  if (!url) return null;
+
+  return (
+    <div className="grid gap-3 rounded-md border bg-white p-3 sm:grid-cols-[auto_1fr] sm:items-center">
+      <div className="w-fit rounded-md border bg-white p-2">
+        <QRCodeSVG ref={svgRef} value={url} size={128} level="M" includeMargin />
+      </div>
+      <div className="grid gap-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <QrCode className="h-4 w-4" />
+          NFC QR code
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Customers without NFC can scan this code to open the same upload page.
+        </p>
+        <Button variant="outline" onClick={downloadQr} className="w-fit">
+          <Download className="h-4 w-4" />
+          Download QR
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function isEditingFormField() {
@@ -404,6 +453,7 @@ export function SlotLinks({ slot }: { slot: CustomerSlot }) {
     slot.upload_slug ? { label: "NFC", href: `/u/${slot.upload_slug}` } : null,
     slot.download_token ? { label: "Download", href: `/d/${slot.download_token}` } : null
   ].filter(Boolean) as { label: string; href: string }[];
+  const nfcLink = links.find((link) => link.label === "NFC");
 
   return (
     <div className="grid gap-2 text-sm">
@@ -431,6 +481,7 @@ export function SlotLinks({ slot }: { slot: CustomerSlot }) {
           <Copy className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
       ))}
+      {nfcLink ? <NfcQrCode href={nfcLink.href} label={slot.slot_name} /> : null}
     </div>
   );
 }
