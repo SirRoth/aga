@@ -23,6 +23,7 @@ create table if not exists public.customer_slots (
   slot_name text not null,
   storage_limit_bytes bigint not null default 2147483648 check (storage_limit_bytes > 0),
   storage_used_bytes bigint not null default 0 check (storage_used_bytes >= 0),
+  allow_videos boolean not null default false,
   status public.slot_status not null default 'VACANT',
   event_name text,
   upload_slug text unique,

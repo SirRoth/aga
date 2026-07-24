@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const { isAdmin } = await requireAdmin();
   if (!isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { slotId, eventName } = await request.json();
+  const { slotId, eventName, allowVideos } = await request.json();
   if (!slotId || !String(eventName ?? "").trim()) {
     return NextResponse.json({ error: "slotId and eventName are required." }, { status: 400 });
   }
@@ -37,7 +37,8 @@ export async function POST(request: Request) {
       download_token: downloadToken,
       storage_prefix: storagePrefix,
       event_start_at: new Date().toISOString(),
-      storage_used_bytes: 0
+      storage_used_bytes: 0,
+      allow_videos: Boolean(allowVideos)
     })
     .eq("id", slotId);
 

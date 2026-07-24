@@ -46,10 +46,11 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
 
             {active && hasCapacity ? (
               <UploadForm
-                uploadSlug={params.upload_slug}
-                storageLimitBytes={customerSlot.storage_limit_bytes}
-                storageUsedBytes={customerSlot.storage_used_bytes}
-              />
+              uploadSlug={params.upload_slug}
+              allowVideos={customerSlot.allow_videos}
+              storageLimitBytes={customerSlot.storage_limit_bytes}
+              storageUsedBytes={customerSlot.storage_used_bytes}
+            />
             ) : (
               <p className="rounded-lg border border-[#ead9c2] bg-white/70 p-4 text-sm">
                 This upload link is no longer accepting photos. Please contact the event host.

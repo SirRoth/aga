@@ -65,12 +65,21 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
                 onChange={() => toggle(photo.id)}
                 type="checkbox"
               />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                alt={photo.file_name}
-                className="aspect-square w-full object-cover"
-                src={`/api/download?token=${token}&photoId=${photo.id}`}
-              />
+              {photo.mime_type.startsWith("video/") ? (
+                <video
+                  className="aspect-square w-full bg-black object-cover"
+                  controls
+                  preload="metadata"
+                  src={`/api/download?token=${token}&photoId=${photo.id}`}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt={photo.file_name}
+                  className="aspect-square w-full object-cover"
+                  src={`/api/download?token=${token}&photoId=${photo.id}`}
+                />
+              )}
               <span className="block truncate px-3 py-2 text-xs">{photo.file_name}</span>
             </label>
           ))}

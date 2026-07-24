@@ -42,10 +42,12 @@ function uploadWithProgress(
 
 export function UploadForm({
   uploadSlug,
+  allowVideos,
   storageLimitBytes,
   storageUsedBytes
 }: {
   uploadSlug: string;
+  allowVideos: boolean;
   storageLimitBytes: number;
   storageUsedBytes: number;
 }) {
@@ -213,7 +215,7 @@ export function UploadForm({
           multiple
           name="files"
           type="file"
-          accept="image/*"
+          accept={allowVideos ? "image/*,video/*" : "image/*"}
           onChange={(event) => {
             const files = Array.from(event.currentTarget.files ?? []);
             if (!files.length) {
@@ -231,7 +233,7 @@ export function UploadForm({
         type="submit"
       >
         <Upload className="h-4 w-4" />
-        {pending ? "Uploading..." : "Upload photos"}
+        {pending ? "Uploading..." : allowVideos ? "Upload photos & videos" : "Upload photos"}
       </Button>
       {pending ? (
         <div className="rounded-xl border border-[#e5d2ba] bg-white/55 p-4">

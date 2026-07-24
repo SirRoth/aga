@@ -12,6 +12,10 @@ type UploadFileRequest = {
   sizeBytes: number;
 };
 
+function isAllowedMimeType(mimeType: string, allowVideos: boolean) {
+  return mimeType.startsWith("image/") || (allowVideos && mimeType.startsWith("video/"));
+}
+
 async function getActiveSlot(uploadSlug: string) {
   const supabase = createSupabaseAdminClient();
   const { data: slot, error } = await supabase
@@ -56,6 +60,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Storage limit reached for this event." }, { status: 413 });
   }
 
+  if (files.some((file) => !isAllowedMimeType(file.mimeType || "application/octet-stream", slot.allow_videos))) {
+    return NextResponse.json(
+      { error: slot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed." },
+      { status: 415 }
+    );
+  }
+
   const uploads = await Promise.all(
     files.map(async (file) => {
       const objectKey = createObjectKey(slot.storage_prefix!, file.fileName);
@@ -96,6 +107,13 @@ export async function PUT(request: Request) {
   const totalBytes = uploads.reduce((sum, upload) => sum + Number(upload.sizeBytes ?? 0), 0);
   if (slot.storage_used_bytes + totalBytes > slot.storage_limit_bytes) {
     return NextResponse.json({ error: "Storage limit reached for this event." }, { status: 413 });
+  }
+
+  if (uploads.some((upload) => !isAllowedMimeType(upload.mimeType || "application/octet-stream", slot.allow_videos))) {
+    return NextResponse.json(
+      { error: slot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed." },
+      { status: 415 }
+    );
   }
 
   for (const upload of uploads) {

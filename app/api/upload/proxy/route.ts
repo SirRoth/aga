@@ -6,6 +6,10 @@ import { isWithinActiveWindow } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
+function isAllowedMimeType(mimeType: string, allowVideos: boolean) {
+  return mimeType.startsWith("image/") || (allowVideos && mimeType.startsWith("video/"));
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const uploadSlug = String(formData.get("uploadSlug") ?? "");
@@ -39,6 +43,13 @@ export async function POST(request: Request) {
 
   if (!objectKey.startsWith(customerSlot.storage_prefix)) {
     return NextResponse.json({ error: "Upload object key is outside this event." }, { status: 400 });
+  }
+
+  if (!isAllowedMimeType(mimeType, customerSlot.allow_videos)) {
+    return NextResponse.json(
+      { error: customerSlot.allow_videos ? "Only photo and video files are allowed." : "Only photo files are allowed." },
+      { status: 415 }
+    );
   }
 
   if (customerSlot.storage_used_bytes + sizeBytes > customerSlot.storage_limit_bytes) {

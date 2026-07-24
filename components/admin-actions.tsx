@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, HardDrive, RefreshCcw, Rocket, ShieldOff, Undo2 } from "lucide-react";
+import { CheckCircle2, Copy, HardDrive, RefreshCcw, Rocket, ShieldOff, Undo2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CustomerSlot } from "@/lib/types";
@@ -40,6 +40,7 @@ export function AdminAutoRefresh() {
 
 export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
   const [eventName, setEventName] = useState("");
+  const [allowVideos, setAllowVideos] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function submit() {
@@ -47,24 +48,39 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
       await fetch("/api/admin/slots/provision", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slotId: slot.id, eventName })
+        body: JSON.stringify({ slotId: slot.id, eventName, allowVideos })
       });
       window.location.reload();
     });
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row">
-      <Input
-        value={eventName}
-        onChange={(event) => setEventName(event.target.value)}
-        placeholder="Event name"
-        disabled={slot.status !== "VACANT"}
-      />
-      <Button onClick={submit} disabled={slot.status !== "VACANT" || pending || !eventName.trim()}>
-        <Rocket className="h-4 w-4" />
-        Provision
-      </Button>
+    <div className="grid gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          value={eventName}
+          onChange={(event) => setEventName(event.target.value)}
+          placeholder="Event name"
+          disabled={slot.status !== "VACANT"}
+        />
+        <Button onClick={submit} disabled={slot.status !== "VACANT" || pending || !eventName.trim()}>
+          <Rocket className="h-4 w-4" />
+          Provision
+        </Button>
+      </div>
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+        <input
+          checked={allowVideos}
+          className="peer sr-only"
+          disabled={slot.status !== "VACANT"}
+          onChange={(event) => setAllowVideos(event.target.checked)}
+          type="checkbox"
+        />
+        <span className="flex h-5 w-5 items-center justify-center rounded-full border border-input bg-white text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-disabled:opacity-50">
+          <CheckCircle2 className="h-4 w-4" />
+        </span>
+        Allow video uploads
+      </label>
     </div>
   );
 }
@@ -182,6 +198,10 @@ export function SlotLinks({ slot }: { slot: CustomerSlot }) {
 
   return (
     <div className="grid gap-2 text-sm">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Video className="h-4 w-4" />
+        {slot.allow_videos ? "Photos and videos enabled" : "Photos only"}
+      </div>
       {links.map((link) => (
         <button
           className="flex min-w-0 items-center justify-between rounded-md border bg-white px-3 py-2 text-left"

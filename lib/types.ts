@@ -5,6 +5,7 @@ export type CustomerSlot = {
   slot_name: string;
   storage_limit_bytes: number;
   storage_used_bytes: number;
+  allow_videos: boolean;
   status: SlotStatus;
   event_name: string | null;
   upload_slug: string | null;
