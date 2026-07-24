@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import {
+  AdminAutoRefresh,
   CloseEventButton,
   ForcePurgeButton,
   ProvisionSlotForm,
@@ -30,6 +31,7 @@ export default async function AdminPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-8">
+      <AdminAutoRefresh />
       <header className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-primary">Photo Box Portal</p>

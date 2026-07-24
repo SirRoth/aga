@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Copy, HardDrive, RefreshCcw, Rocket, ShieldOff, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,32 @@ import type { CustomerSlot } from "@/lib/types";
 function absoluteUrl(path: string) {
   if (typeof window === "undefined") return path;
   return `${window.location.origin}${path}`;
+}
+
+function isEditingFormField() {
+  const element = document.activeElement;
+  if (!element) return false;
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName);
+}
+
+export function AdminAutoRefresh() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible" && !isEditingFormField()) router.refresh();
+    };
+
+    const interval = window.setInterval(refresh, 5000);
+    window.addEventListener("focus", refresh);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [router]);
+
+  return null;
 }
 
 export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
