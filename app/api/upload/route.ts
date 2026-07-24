@@ -7,6 +7,11 @@ import { isWithinActiveWindow } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Upload failed.";
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const uploadSlug = String(formData.get("uploadSlug") ?? "");
@@ -43,12 +48,25 @@ export async function POST(request: Request) {
   const uploaded = [];
   for (const file of files) {
     const stream = Readable.from(Buffer.from(await file.arrayBuffer()));
-    const driveFile = await uploadFileToFolder(
-      customerSlot.gdrive_folder_id,
-      stream,
-      file.name,
-      file.type || "application/octet-stream"
-    );
+    let driveFile;
+    try {
+      driveFile = await uploadFileToFolder(
+        customerSlot.gdrive_folder_id,
+        stream,
+        file.name,
+        file.type || "application/octet-stream"
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            getErrorMessage(error).includes("Service Accounts do not have storage quota")
+              ? "Google Drive rejected the upload because the service account has no storage quota. Use a Google Workspace Shared Drive and add the service account as a member, or switch to OAuth/user-owned storage."
+              : getErrorMessage(error)
+        },
+        { status: 502 }
+      );
+    }
 
     uploaded.push({
       slot_id: customerSlot.id,

@@ -55,6 +55,7 @@ function getDriveClient() {
 export async function createEventFolder(folderName: string) {
   const drive = getDriveClient();
   const response = await drive.files.create({
+    supportsAllDrives: true,
     requestBody: {
       name: folderName,
       mimeType: "application/vnd.google-apps.folder",
@@ -75,6 +76,7 @@ export async function uploadFileToFolder(
 ) {
   const drive = getDriveClient();
   const response = await drive.files.create({
+    supportsAllDrives: true,
     requestBody: {
       name: fileName,
       parents: [folderId]
@@ -92,13 +94,13 @@ export async function uploadFileToFolder(
 
 export async function deleteFolderAndContents(folderId: string) {
   const drive = getDriveClient();
-  await drive.files.delete({ fileId: folderId });
+  await drive.files.delete({ fileId: folderId, supportsAllDrives: true });
 }
 
 export async function getDownloadStream(fileId: string) {
   const drive = getDriveClient();
   const response = await drive.files.get(
-    { fileId, alt: "media" },
+    { fileId, alt: "media", supportsAllDrives: true },
     { responseType: "stream" }
   );
   return response.data;
@@ -108,6 +110,7 @@ export async function getFileMetadata(fileId: string) {
   const drive = getDriveClient();
   const response = await drive.files.get({
     fileId,
+    supportsAllDrives: true,
     fields: "id,name,mimeType,size"
   });
   return response.data;
