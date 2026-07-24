@@ -45,7 +45,7 @@ export function UploadForm({ uploadSlug }: { uploadSlug: string }) {
         }
 
         for (const [index, upload] of presignResult.uploads.entries() as IterableIterator<
-          [number, { uploadUrl: string; mimeType: string }]
+          [number, { objectKey: string; uploadUrl: string; mimeType: string; sizeBytes: number }]
         >) {
           const selectedFile = uploadFiles[index];
           try {
@@ -57,9 +57,26 @@ export function UploadForm({ uploadSlug }: { uploadSlug: string }) {
 
             if (!response.ok) throw new Error(`R2 returned ${response.status}.`);
           } catch (error) {
-            const detail = error instanceof Error ? error.message : "Network request failed.";
-            setMessage(`Upload failed for ${selectedFile.fileName}: ${detail}`);
-            return;
+            const fallbackData = new FormData();
+            fallbackData.set("uploadSlug", uploadSlug);
+            fallbackData.set("objectKey", upload.objectKey);
+            fallbackData.set("mimeType", upload.mimeType);
+            fallbackData.set("sizeBytes", String(upload.sizeBytes));
+            fallbackData.set("file", selectedFile.file);
+
+            const fallbackResponse = await fetch("/api/upload/proxy", {
+              method: "POST",
+              body: fallbackData
+            });
+
+            if (!fallbackResponse.ok) {
+              const fallbackResult = await fallbackResponse.json().catch(() => null);
+              const detail =
+                fallbackResult?.error ??
+                (error instanceof Error ? error.message : "Network request failed.");
+              setMessage(`Upload failed for ${selectedFile.fileName}: ${detail}`);
+              return;
+            }
           }
         }
 

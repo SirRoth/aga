@@ -65,6 +65,17 @@ export async function createPresignedUploadUrl(objectKey: string, mimeType: stri
   return getSignedUrl(getR2Client(), command, { expiresIn: 60 * 10 });
 }
 
+export async function uploadObject(objectKey: string, body: Buffer, mimeType: string) {
+  await getR2Client().send(
+    new PutObjectCommand({
+      Bucket: getBucketName(),
+      Key: objectKey,
+      Body: body,
+      ContentType: mimeType
+    })
+  );
+}
+
 export async function assertObjectExists(objectKey: string) {
   await getR2Client().send(
     new HeadObjectCommand({
