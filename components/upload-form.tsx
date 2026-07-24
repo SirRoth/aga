@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { bytesToHuman } from "@/lib/utils";
@@ -51,6 +52,7 @@ export function UploadForm({
   storageLimitBytes: number;
   storageUsedBytes: number;
 }) {
+  const router = useRouter();
   const [message, setMessage] = useState("");
   const [usedBytes, setUsedBytes] = useState(storageUsedBytes);
   const [progressPercent, setProgressPercent] = useState(0);
@@ -68,7 +70,7 @@ export function UploadForm({
 
       const status = await response.json();
       if (typeof status.storageUsedBytes === "number") setUsedBytes(status.storageUsedBytes);
-      if (status.suspended && typeof status.message === "string") setMessage(status.message);
+      if (status.suspended) router.push("/account-suspended");
     }
 
     refreshStorage();
@@ -77,7 +79,7 @@ export function UploadForm({
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [uploadSlug]);
+  }, [router, uploadSlug]);
 
   function submit(formData: FormData) {
     setMessage("");
