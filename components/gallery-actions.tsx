@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, FileText, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { inferMediaMimeType, isAudioFile, isVideoFile, isWordFile } from "@/lib/media-files";
 import type { Photo } from "@/lib/types";
 import { bytesToHuman } from "@/lib/utils";
 
@@ -14,9 +15,10 @@ function getZipName(response: Response) {
 }
 
 function getGalleryLabel(photo: Photo) {
-  if (photo.mime_type.startsWith("audio/")) return "Voice note";
-  if (photo.mime_type.startsWith("video/")) return "Video";
-  if (photo.mime_type.includes("word")) return "Written message";
+  const mimeType = inferMediaMimeType(photo.file_name, photo.object_key, photo.mime_type);
+  if (mimeType.startsWith("audio/")) return "Voice note";
+  if (mimeType.startsWith("video/")) return "Video";
+  if (mimeType.includes("word")) return "Written message";
   return "Photo";
 }
 
@@ -165,19 +167,19 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
                 onChange={() => toggle(photo.id)}
                 type="checkbox"
               />
-              {photo.mime_type.startsWith("video/") ? (
+              {isVideoFile(photo.file_name, photo.object_key, photo.mime_type) ? (
                 <video
                   className="aspect-square w-full bg-black object-cover"
                   controls
                   preload="metadata"
                   src={`/api/download?token=${token}&photoId=${photo.id}`}
                 />
-              ) : photo.mime_type.startsWith("audio/") ? (
+              ) : isAudioFile(photo.file_name, photo.object_key, photo.mime_type) ? (
                 <div className="flex aspect-square flex-col items-center justify-center gap-4 bg-[#f6eadb] p-4 text-[#4a3b32]">
                   <Mic className="h-12 w-12 text-[#b98537]" />
                   <audio className="w-full" controls src={`/api/download?token=${token}&photoId=${photo.id}`} />
                 </div>
-              ) : photo.mime_type.includes("word") ? (
+              ) : isWordFile(photo.file_name, photo.object_key, photo.mime_type) ? (
                 <div className="flex aspect-square flex-col items-center justify-center gap-3 bg-[#f6eadb] p-5 text-center text-[#4a3b32]">
                   <FileText className="h-14 w-14 text-[#b98537]" />
                   <span className="text-sm font-semibold">Written message</span>

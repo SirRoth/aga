@@ -1,41 +1,54 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cleanFileNameFromObjectKey, inferMediaMimeType } from "@/lib/media-files";
 import { getObjectMetadata, listObjects } from "@/lib/r2";
 import type { CustomerSlot, Photo } from "@/lib/types";
-
-function fileNameFromObjectKey(objectKey: string) {
-  const baseName = objectKey.split("/").pop() ?? objectKey;
-  const match = baseName.match(/^[0-9a-f-]{36}-(.+)$/i);
-  return match?.[1] || baseName;
-}
-
-function fallbackMimeType(fileName: string) {
-  const lowerName = fileName.toLowerCase();
-  const extension = lowerName.split(".").pop();
-  if (extension === "webm") return lowerName.startsWith("guest-voice") ? "audio/webm" : "video/webm";
-  if (extension === "mp4") return "video/mp4";
-  if (extension === "ogg") return "audio/ogg";
-  if (extension === "doc") return "application/msword";
-  if (extension === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
-  if (extension === "png") return "image/png";
-  if (extension === "gif") return "image/gif";
-  return "application/octet-stream";
-}
 
 export async function syncSlotFilesFromR2(supabase: SupabaseClient, slot: CustomerSlot) {
   if (!slot.storage_prefix) return;
 
   const { data: existingRows, error: existingError } = await supabase
     .from("photos")
-    .select("object_key")
+    .select("*")
     .eq("slot_id", slot.id);
 
   if (existingError) throw existingError;
 
-  const existingKeys = new Set(((existingRows ?? []) as Pick<Photo, "object_key">[]).map((row) => row.object_key));
+  const existingPhotos = (existingRows ?? []) as Photo[];
+  const existingByKey = new Map(existingPhotos.map((row) => [row.object_key, row]));
   const r2Objects = await listObjects(slot.storage_prefix);
-  const missingObjects = r2Objects.filter((object) => !existingKeys.has(object.key));
+  const missingObjects = r2Objects.filter((object) => !existingByKey.has(object.key));
   const r2TotalBytes = r2Objects.reduce((sum, object) => sum + object.sizeBytes, 0);
+
+  await Promise.all(
+    r2Objects.map(async (object) => {
+      const existingPhoto = existingByKey.get(object.key);
+      if (!existingPhoto) return;
+
+      const metadata = await getObjectMetadata(object.key).catch(() => null);
+      const fileName = cleanFileNameFromObjectKey(object.key);
+      const mimeType = inferMediaMimeType(fileName, object.key, metadata?.contentType ?? existingPhoto.mime_type);
+      const fileSizeBytes = metadata?.contentLength ?? object.sizeBytes;
+
+      if (
+        existingPhoto.file_name === fileName &&
+        existingPhoto.mime_type === mimeType &&
+        existingPhoto.file_size_bytes === fileSizeBytes
+      ) {
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from("photos")
+        .update({
+          file_name: fileName,
+          mime_type: mimeType,
+          file_size_bytes: fileSizeBytes
+        })
+        .eq("id", existingPhoto.id);
+
+      if (updateError) throw updateError;
+    })
+  );
 
   if (!missingObjects.length) {
     if (r2TotalBytes > slot.storage_used_bytes) {
@@ -46,14 +59,15 @@ export async function syncSlotFilesFromR2(supabase: SupabaseClient, slot: Custom
 
   const rows = await Promise.all(
     missingObjects.map(async (object) => {
-      const fileName = fileNameFromObjectKey(object.key);
+      const fileName = cleanFileNameFromObjectKey(object.key);
       const metadata = await getObjectMetadata(object.key).catch(() => null);
+      const mimeType = inferMediaMimeType(fileName, object.key, metadata?.contentType);
 
       return {
         slot_id: slot.id,
         object_key: object.key,
         file_name: fileName,
-        mime_type: metadata?.contentType || fallbackMimeType(fileName),
+        mime_type: mimeType,
         file_size_bytes: metadata?.contentLength ?? object.sizeBytes
       };
     })

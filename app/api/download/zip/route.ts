@@ -2,6 +2,7 @@ import { PassThrough, Readable } from "node:stream";
 import archiver from "archiver";
 import { NextResponse } from "next/server";
 import { getObjectStream } from "@/lib/r2";
+import { syncSlotFilesFromR2 } from "@/lib/sync-slot-files";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot, Photo } from "@/lib/types";
 import { isWithinActiveWindow } from "@/lib/utils";
@@ -31,6 +32,8 @@ export async function GET(request: Request) {
   ) {
     return NextResponse.json({ error: "Download link expired." }, { status: 403 });
   }
+
+  await syncSlotFilesFromR2(supabase, customerSlot);
 
   let query = supabase.from("photos").select("*").eq("slot_id", customerSlot.id);
   if (selectedPhotoIds.length > 0) query = query.in("id", selectedPhotoIds);

@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import { getObjectMetadata, getObjectStream } from "@/lib/r2";
+import { inferMediaMimeType } from "@/lib/media-files";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot, Photo } from "@/lib/types";
 import { isWithinActiveWindow } from "@/lib/utils";
@@ -45,12 +46,13 @@ export async function GET(request: Request) {
 
   const photoRow = photo as Photo;
   const metadata = await getObjectMetadata(photoRow.object_key);
+  const contentType = inferMediaMimeType(photoRow.file_name, photoRow.object_key, metadata.contentType ?? photoRow.mime_type);
   const object = await getObjectStream(photoRow.object_key, range);
   const stream = object.stream;
   const webStream = Readable.toWeb(stream) as ReadableStream;
   const headers = new Headers({
     "accept-ranges": "bytes",
-    "content-type": photoRow.mime_type,
+    "content-type": contentType,
     "content-disposition": `inline; filename="${photoRow.file_name.replaceAll('"', "")}"`
   });
 
