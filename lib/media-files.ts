@@ -9,7 +9,11 @@ export function inferMediaMimeType(fileName: string, objectKey: string, storedMi
   const lowerKey = objectKey.toLowerCase();
   const extension = lowerName.split(".").pop();
 
-  if (lowerName.startsWith("guest-voice") || lowerKey.includes("-guest-voice-")) return "audio/webm";
+  if (lowerName.startsWith("guest-voice") || lowerKey.includes("-guest-voice-")) {
+    if (extension === "mp4") return "audio/mp4";
+    if (extension === "ogg") return "audio/ogg";
+    return "audio/webm";
+  }
   if (lowerName.startsWith("guest-video") || lowerKey.includes("-guest-video-")) {
     return extension === "mp4" ? "video/mp4" : "video/webm";
   }

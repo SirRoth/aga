@@ -6,14 +6,6 @@ import { FileText, Mic, RotateCcw, Upload, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { bytesToHuman } from "@/lib/utils";
 
-type PresignedUpload = {
-  objectKey: string;
-  uploadUrl: string;
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
-};
-
 type MessageMode = "voice" | "video" | "text";
 
 function getSupportedRecorderMimeType(mode: Exclude<MessageMode, "text">) {
@@ -34,26 +26,37 @@ function getRecordingExtension(mimeType: string, mode: Exclude<MessageMode, "tex
   return mode === "video" ? "webm" : "webm";
 }
 
-function uploadWithProgress(upload: PresignedUpload, file: File, onProgress: (loadedBytes: number) => void) {
-  return new Promise<void>((resolve, reject) => {
+function uploadMessageWithProgress(
+  uploadSlug: string,
+  file: File,
+  onProgress: (loadedBytes: number) => void
+) {
+  return new Promise<{ storageUsedBytes: number; storageLimitBytes: number }>((resolve, reject) => {
     const request = new XMLHttpRequest();
 
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded);
     };
     request.onload = () => {
-      if (request.status >= 200 && request.status < 300) {
+      const data = request.responseText ? (JSON.parse(request.responseText) as { error?: string; storageUsedBytes?: number; storageLimitBytes?: number }) : null;
+      if (request.status >= 200 && request.status < 300 && data) {
         onProgress(file.size);
-        resolve();
+        resolve({
+          storageUsedBytes: Number(data.storageUsedBytes ?? 0),
+          storageLimitBytes: Number(data.storageLimitBytes ?? 0)
+        });
       } else {
-        reject(new Error(`R2 returned ${request.status}.`));
+        reject(new Error(data?.error ?? `Upload returned ${request.status}.`));
       }
     };
     request.onerror = () => reject(new Error("Failed to fetch"));
     request.onabort = () => reject(new Error("Upload cancelled."));
-    request.open("PUT", upload.uploadUrl);
-    request.setRequestHeader("content-type", upload.mimeType);
-    request.send(file);
+
+    const formData = new FormData();
+    formData.set("uploadSlug", uploadSlug);
+    formData.set("file", file);
+    request.open("POST", "/api/upload/message");
+    request.send(formData);
   });
 }
 
@@ -237,66 +240,12 @@ export function MessageUploadForm({
           return;
         }
 
-        const presignResponse = await fetch("/api/upload/presign", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            uploadSlug,
-            files: [{ fileName: file.name, mimeType: file.type, sizeBytes: file.size }]
-          })
+        const uploadResult = await uploadMessageWithProgress(uploadSlug, file, (loadedBytes) => {
+          setProgressPercent(Math.round((loadedBytes / file.size) * 100));
         });
-        const presignResult = await presignResponse.json();
-        if (!presignResponse.ok) {
-          setMessage(presignResult.error ?? "Upload failed.");
-          return;
-        }
-
-        const upload = presignResult.uploads[0] as PresignedUpload;
-        try {
-          await uploadWithProgress(upload, file, (loadedBytes) => {
-            setProgressPercent(Math.round((loadedBytes / file.size) * 100));
-          });
-        } catch (error) {
-          setMessage("Direct upload failed. Retrying through server...");
-          const fallbackData = new FormData();
-          fallbackData.set("uploadSlug", uploadSlug);
-          fallbackData.set("objectKey", upload.objectKey);
-          fallbackData.set("mimeType", upload.mimeType);
-          fallbackData.set("sizeBytes", String(upload.sizeBytes));
-          fallbackData.set("file", file);
-
-          const fallbackResponse = await fetch("/api/upload/proxy", { method: "POST", body: fallbackData });
-          if (!fallbackResponse.ok) {
-            const fallbackResult = await fallbackResponse.json().catch(() => null);
-            setMessage(fallbackResult?.error ?? (error instanceof Error ? error.message : "Upload failed."));
-            return;
-          }
-          setProgressPercent(100);
-        }
-
-        const completeResponse = await fetch("/api/upload/presign", {
-          method: "PUT",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            uploadSlug,
-            uploads: [
-              {
-                objectKey: upload.objectKey,
-                fileName: upload.fileName,
-                mimeType: upload.mimeType,
-                sizeBytes: upload.sizeBytes
-              }
-            ]
-          })
-        });
-        const completeResult = await completeResponse.json();
-        if (!completeResponse.ok) {
-          setMessage(completeResult.error ?? "Upload failed.");
-          return;
-        }
 
         resetRecording();
-        setUsedBytes(completeResult.storageUsedBytes);
+        setUsedBytes(uploadResult.storageUsedBytes);
         setTextMessage("");
         setMessage("Message uploaded. Thank you.");
       } catch (error) {
