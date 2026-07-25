@@ -17,6 +17,8 @@ type PresignedUpload = {
 type MessageMode = "voice" | "video" | "text";
 
 function getSupportedRecorderMimeType(mode: Exclude<MessageMode, "text">) {
+  if (typeof MediaRecorder === "undefined") return undefined;
+
   const mimeTypes =
     mode === "video"
       ? ["video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
@@ -177,6 +179,11 @@ export function MessageUploadForm({
     setMessage("");
 
     try {
+      if (typeof MediaRecorder === "undefined") {
+        setMessage("Recording is not supported by this browser. Please try a newer mobile browser.");
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia(
         nextMode === "video" ? { audio: true, video: true } : { audio: true }
       );

@@ -12,6 +12,26 @@ type UploadFileRequest = {
   sizeBytes: number;
 };
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function assertObjectExistsWithRetry(objectKey: string) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await assertObjectExists(objectKey);
+      return;
+    } catch (error) {
+      lastError = error;
+      await wait(250 * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
+
 function isAllowedMimeType(mimeType: string, slot: CustomerSlot) {
   if (slot.box_kind === "MESSAGE") {
     return (
@@ -145,7 +165,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Upload object key is outside this event." }, { status: 400 });
     }
 
-    await assertObjectExists(upload.objectKey);
+    await assertObjectExistsWithRetry(upload.objectKey);
   }
 
   const { error: photoError } = await supabase.from("photos").insert(
