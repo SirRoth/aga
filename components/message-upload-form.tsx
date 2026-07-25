@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Mic, RotateCcw, Upload, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -170,6 +170,18 @@ export function MessageUploadForm({
   const [pending, startTransition] = useTransition();
   const usedPercent = Math.min((usedBytes / storageLimitBytes) * 100, 100);
 
+  const stopActiveStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => {
+      track.stop();
+      streamRef.current?.removeTrack(track);
+    });
+    streamRef.current = null;
+    if (previewRef.current) {
+      previewRef.current.pause();
+      previewRef.current.srcObject = null;
+    }
+  }, []);
+
   useEffect(() => {
     async function refreshStorage() {
       const response = await fetch(`/api/upload/status?uploadSlug=${encodeURIComponent(uploadSlug)}`, {
@@ -192,15 +204,14 @@ export function MessageUploadForm({
 
   useEffect(() => {
     return () => {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
+      stopActiveStream();
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
     };
-  }, [recordedUrl]);
+  }, [recordedUrl, stopActiveStream]);
 
   function resetRecording() {
     recorderRef.current?.state === "recording" && recorderRef.current.stop();
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    stopActiveStream();
     chunksRef.current = [];
     setRecording(false);
     setRecordedFile(null);
@@ -243,12 +254,7 @@ export function MessageUploadForm({
         const extension = getRecordingExtension(mimeType, nextMode);
         const file = new File([blob], `guest-${nextMode}-${Date.now()}.${extension}`, { type: mimeType });
         const url = URL.createObjectURL(blob);
-        stream.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-        if (previewRef.current) {
-          previewRef.current.srcObject = null;
-          previewRef.current.load();
-        }
+        stopActiveStream();
         setRecordedFile(file);
         setRecordedUrl(url);
         setRecording(false);
