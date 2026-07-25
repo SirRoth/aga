@@ -108,13 +108,33 @@ export async function deletePrefix(prefix: string) {
   } while (continuationToken);
 }
 
-export async function getObjectStream(objectKey: string) {
+export async function getObjectStream(objectKey: string, range?: string) {
   const response = await getR2Client().send(
     new GetObjectCommand({
+      Bucket: getBucketName(),
+      Key: objectKey,
+      Range: range
+    })
+  );
+
+  return {
+    contentLength: response.ContentLength,
+    contentRange: response.ContentRange,
+    contentType: response.ContentType,
+    stream: response.Body as Readable
+  };
+}
+
+export async function getObjectMetadata(objectKey: string) {
+  const response = await getR2Client().send(
+    new HeadObjectCommand({
       Bucket: getBucketName(),
       Key: objectKey
     })
   );
 
-  return response.Body as Readable;
+  return {
+    contentLength: response.ContentLength,
+    contentType: response.ContentType
+  };
 }

@@ -44,8 +44,8 @@ export async function GET(request: Request) {
   queueMicrotask(async () => {
     try {
       for (const photo of (photos ?? []) as Photo[]) {
-        const stream = await getObjectStream(photo.object_key);
-        archive.append(stream, { name: photo.file_name });
+        const object = await getObjectStream(photo.object_key);
+        archive.append(object.stream, { name: photo.file_name });
       }
       await archive.finalize();
     } catch (error) {

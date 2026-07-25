@@ -16,6 +16,22 @@ type PresignedUpload = {
 
 type MessageMode = "voice" | "video" | "text";
 
+function getSupportedRecorderMimeType(mode: Exclude<MessageMode, "text">) {
+  const mimeTypes =
+    mode === "video"
+      ? ["video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
+      : ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
+
+  return mimeTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+}
+
+function getRecordingExtension(mimeType: string, mode: Exclude<MessageMode, "text">) {
+  if (mimeType.includes("mp4")) return "mp4";
+  if (mimeType.includes("ogg")) return "ogg";
+  if (mimeType.includes("webm")) return "webm";
+  return mode === "video" ? "webm" : "webm";
+}
+
 function uploadWithProgress(upload: PresignedUpload, file: File, onProgress: (loadedBytes: number) => void) {
   return new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
@@ -169,7 +185,8 @@ export function MessageUploadForm({
         previewRef.current.srcObject = stream;
       }
 
-      const recorder = new MediaRecorder(stream);
+      const mimeType = getSupportedRecorderMimeType(nextMode);
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       recorderRef.current = recorder;
       chunksRef.current = [];
       recorder.ondataavailable = (event) => {
@@ -178,11 +195,15 @@ export function MessageUploadForm({
       recorder.onstop = () => {
         const mimeType = recorder.mimeType || (nextMode === "video" ? "video/webm" : "audio/webm");
         const blob = new Blob(chunksRef.current, { type: mimeType });
-        const extension = mimeType.includes("mp4") ? "mp4" : "webm";
+        const extension = getRecordingExtension(mimeType, nextMode);
         const file = new File([blob], `guest-${nextMode}-${Date.now()}.${extension}`, { type: mimeType });
         const url = URL.createObjectURL(blob);
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+        if (previewRef.current) {
+          previewRef.current.srcObject = null;
+          previewRef.current.load();
+        }
         setRecordedFile(file);
         setRecordedUrl(url);
         setRecording(false);

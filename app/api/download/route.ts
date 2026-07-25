@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
-import { getObjectStream } from "@/lib/r2";
+import { getObjectMetadata, getObjectStream } from "@/lib/r2";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot, Photo } from "@/lib/types";
 import { isWithinActiveWindow } from "@/lib/utils";
@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
   const photoId = url.searchParams.get("photoId");
+  const range = request.headers.get("range") ?? undefined;
 
   if (!token || !photoId) {
     return NextResponse.json({ error: "token and photoId are required." }, { status: 400 });
@@ -43,13 +44,25 @@ export async function GET(request: Request) {
   if (!photo) return NextResponse.json({ error: "Photo not found." }, { status: 404 });
 
   const photoRow = photo as Photo;
-  const stream = await getObjectStream(photoRow.object_key);
+  const metadata = await getObjectMetadata(photoRow.object_key);
+  const object = await getObjectStream(photoRow.object_key, range);
+  const stream = object.stream;
   const webStream = Readable.toWeb(stream) as ReadableStream;
-
-  return new Response(webStream, {
-    headers: {
-      "content-type": photoRow.mime_type,
-      "content-disposition": `inline; filename="${photoRow.file_name.replaceAll('"', "")}"`
-    }
+  const headers = new Headers({
+    "accept-ranges": "bytes",
+    "content-type": photoRow.mime_type,
+    "content-disposition": `inline; filename="${photoRow.file_name.replaceAll('"', "")}"`
   });
+
+  if (range && object.contentRange) {
+    headers.set("content-range", object.contentRange);
+    headers.set("content-length", String(object.contentLength ?? 0));
+    return new Response(webStream, { status: 206, headers });
+  }
+
+  if (metadata.contentLength !== undefined) {
+    headers.set("content-length", String(metadata.contentLength));
+  }
+
+  return new Response(webStream, { headers });
 }

@@ -154,11 +154,12 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
       {photos.length ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {photos.map((photo) => (
-            <label
+            <div
               className="group relative overflow-hidden rounded-[18px] border border-white/70 bg-[#fffaf3]/90 shadow-lg shadow-[#7f5a2d]/10"
               key={photo.id}
             >
               <input
+                aria-label={`Select ${photo.file_name}`}
                 checked={selected.includes(photo.id)}
                 className="absolute left-3 top-3 z-10 h-5 w-5 accent-[#b98537]"
                 onChange={() => toggle(photo.id)}
@@ -193,7 +194,7 @@ export function GalleryActions({ token, photos }: { token: string; photos: Photo
                 {getGalleryLabel(photo)}
               </span>
               <span className="block truncate px-3 pb-3 pt-1 text-xs text-[#6e5543]">{photo.file_name}</span>
-            </label>
+            </div>
           ))}
         </div>
       ) : (
