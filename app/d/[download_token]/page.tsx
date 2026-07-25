@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Download, Heart } from "lucide-react";
 import { GalleryActions } from "@/components/gallery-actions";
+import { syncSlotFilesFromR2 } from "@/lib/sync-slot-files";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot, Photo } from "@/lib/types";
 import { isWithinActiveWindow } from "@/lib/utils";
@@ -23,6 +24,10 @@ export default async function DownloadPage({ params }: { params: { download_toke
     !customerSlot.reseller_suspended &&
     isWithinActiveWindow(customerSlot.event_start_at);
   const isMessageBox = customerSlot.box_kind === "MESSAGE";
+
+  if (active) {
+    await syncSlotFilesFromR2(supabase, customerSlot);
+  }
 
   const { data: photos } = await supabase
     .from("photos")

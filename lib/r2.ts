@@ -138,3 +138,32 @@ export async function getObjectMetadata(objectKey: string) {
     contentType: response.ContentType
   };
 }
+
+export async function listObjects(prefix: string) {
+  const client = getR2Client();
+  const bucket = getBucketName();
+  let continuationToken: string | undefined;
+  const objects: Array<{ key: string; sizeBytes: number }> = [];
+
+  do {
+    const listed = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken
+      })
+    );
+
+    for (const object of listed.Contents ?? []) {
+      if (!object.Key) continue;
+      objects.push({
+        key: object.Key,
+        sizeBytes: object.Size ?? 0
+      });
+    }
+
+    continuationToken = listed.NextContinuationToken;
+  } while (continuationToken);
+
+  return objects;
+}
