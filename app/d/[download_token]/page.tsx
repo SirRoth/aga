@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import { Download, Heart } from "lucide-react";
 import { GalleryActions } from "@/components/gallery-actions";
 import { syncSlotFilesFromR2 } from "@/lib/sync-slot-files";
@@ -7,8 +8,12 @@ import type { CustomerSlot, Photo } from "@/lib/types";
 import { isWithinActiveWindow } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export default async function DownloadPage({ params }: { params: { download_token: string } }) {
+  noStore();
+
   const supabase = createSupabaseAdminClient();
   const { data: slot } = await supabase
     .from("customer_slots")
