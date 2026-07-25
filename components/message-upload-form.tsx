@@ -31,17 +31,32 @@ function uploadMessageWithProgress(
   file: File,
   onProgress: (loadedBytes: number) => void
 ) {
-  return new Promise<{ storageUsedBytes: number; storageLimitBytes: number }>((resolve, reject) => {
+  return new Promise<{ photoId: string; storageUsedBytes: number; storageLimitBytes: number }>((resolve, reject) => {
     const request = new XMLHttpRequest();
 
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded);
     };
     request.onload = () => {
-      const data = request.responseText ? (JSON.parse(request.responseText) as { error?: string; storageUsedBytes?: number; storageLimitBytes?: number }) : null;
+      let data: { error?: string; photoId?: string; storageUsedBytes?: number; storageLimitBytes?: number } | null = null;
+      try {
+        data = request.responseText
+          ? (JSON.parse(request.responseText) as {
+              error?: string;
+              photoId?: string;
+              storageUsedBytes?: number;
+              storageLimitBytes?: number;
+            })
+          : null;
+      } catch {
+        reject(new Error(`Upload returned ${request.status}. Please check the server logs.`));
+        return;
+      }
+
       if (request.status >= 200 && request.status < 300 && data) {
         onProgress(file.size);
         resolve({
+          photoId: String(data.photoId ?? ""),
           storageUsedBytes: Number(data.storageUsedBytes ?? 0),
           storageLimitBytes: Number(data.storageLimitBytes ?? 0)
         });
@@ -58,6 +73,26 @@ function uploadMessageWithProgress(
     request.open("POST", "/api/upload/message");
     request.send(formData);
   });
+}
+
+async function verifyMessageUpload(uploadSlug: string, photoId: string) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await fetch(
+      `/api/upload/message/verify?uploadSlug=${encodeURIComponent(uploadSlug)}&photoId=${encodeURIComponent(photoId)}`,
+      { cache: "no-store" }
+    );
+    const data = (await response.json().catch(() => null)) as {
+      found?: boolean;
+      storageUsedBytes?: number;
+      storageLimitBytes?: number;
+      error?: string;
+    } | null;
+
+    if (response.ok && data?.found) return data;
+    await new Promise((resolve) => window.setTimeout(resolve, 300 * (attempt + 1)));
+  }
+
+  throw new Error("Upload finished, but the gallery could not detect the file yet. Please try again.");
 }
 
 function escapeHtml(value: string) {
@@ -243,9 +278,10 @@ export function MessageUploadForm({
         const uploadResult = await uploadMessageWithProgress(uploadSlug, file, (loadedBytes) => {
           setProgressPercent(Math.round((loadedBytes / file.size) * 100));
         });
+        const verifiedUpload = await verifyMessageUpload(uploadSlug, uploadResult.photoId);
 
         resetRecording();
-        setUsedBytes(uploadResult.storageUsedBytes);
+        setUsedBytes(Number(verifiedUpload.storageUsedBytes ?? uploadResult.storageUsedBytes));
         setTextMessage("");
         setMessage("Message uploaded. Thank you.");
       } catch (error) {

@@ -66,13 +66,17 @@ export async function POST(request: Request) {
 
   await uploadObject(objectKey, Buffer.from(await file.arrayBuffer()), mimeType);
 
-  const { error: photoError } = await supabase.from("photos").insert({
-    slot_id: customerSlot.id,
-    object_key: objectKey,
-    file_name: fileName,
-    mime_type: mimeType,
-    file_size_bytes: file.size
-  });
+  const { data: photo, error: photoError } = await supabase
+    .from("photos")
+    .insert({
+      slot_id: customerSlot.id,
+      object_key: objectKey,
+      file_name: fileName,
+      mime_type: mimeType,
+      file_size_bytes: file.size
+    })
+    .select("id")
+    .single();
 
   if (photoError) throw photoError;
 
@@ -86,6 +90,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     uploaded: 1,
+    photoId: photo.id,
     storageUsedBytes,
     storageLimitBytes: customerSlot.storage_limit_bytes
   });
