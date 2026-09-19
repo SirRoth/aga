@@ -4,7 +4,7 @@ import { MessageUploadForm } from "@/components/message-upload-form";
 import { UploadForm } from "@/components/upload-form";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
-import { isAcceptingUploads } from "@/lib/utils";
+import { isWithinActiveWindow } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,9 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
   const suspended = customerSlot.is_reseller && customerSlot.reseller_suspended;
   if (suspended) redirect("/account-suspended");
 
-  const active = !suspended && isAcceptingUploads(customerSlot);
+  const isDemoMode = customerSlot.status === "DEMO" && customerSlot.is_reseller;
+  const active =
+    !suspended && (isDemoMode || (customerSlot.status === "ACTIVE" && isWithinActiveWindow(customerSlot.event_start_at)));
   const hasCapacity = customerSlot.storage_used_bytes < customerSlot.storage_limit_bytes;
   const isMessageBox = customerSlot.box_kind === "MESSAGE";
 
