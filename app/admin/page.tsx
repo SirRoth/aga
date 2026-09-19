@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import {
-  AddCustomerBoxForm,
   AddResellerBoxForm,
   AdminAutoRefresh,
   CloseEventButton,
@@ -22,9 +21,9 @@ import { bytesToHuman } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-type AdminTab = "customers" | "resellers" | "messages" | "message-resellers";
+type AdminTab = "resellers" | "message-resellers";
 
-function SlotCard({ slot, mode }: { slot: CustomerSlot; mode: "customer" | "reseller-setup" | "reseller" }) {
+function SlotCard({ slot, mode }: { slot: CustomerSlot; mode: "reseller-setup" | "reseller" }) {
   const usedPercent = Math.min((slot.storage_used_bytes / slot.storage_limit_bytes) * 100, 100);
 
   return (
@@ -87,50 +86,29 @@ export default async function AdminPage({
 
   if (error) throw error;
   const allSlots = slots as CustomerSlot[];
-  const activeTab: AdminTab =
-    searchParams?.tab === "resellers"
-      ? "resellers"
-      : searchParams?.tab === "messages"
-      ? "messages"
-      : searchParams?.tab === "message-resellers"
-      ? "message-resellers"
-      : "customers";
-  const tabBoxKind = activeTab === "messages" || activeTab === "message-resellers" ? "MESSAGE" : "PHOTO";
-  const customerSlots = allSlots.filter((slot) => !slot.is_reseller && slot.box_kind === "PHOTO");
+  const activeTab: AdminTab = searchParams?.tab === "message-resellers" ? "message-resellers" : "resellers";
+  const tabBoxKind = activeTab === "message-resellers" ? "MESSAGE" : "PHOTO";
   const resellerSlots = allSlots.filter((slot) => slot.is_reseller && slot.box_kind === "PHOTO");
   const resellerAssignableSlots = allSlots.filter(
     (slot) => !slot.is_reseller && slot.box_kind === "PHOTO" && slot.status === "VACANT"
   );
-  const messageSlots = allSlots.filter((slot) => !slot.is_reseller && slot.box_kind === "MESSAGE");
   const messageResellerSlots = allSlots.filter((slot) => slot.is_reseller && slot.box_kind === "MESSAGE");
   const messageResellerAssignableSlots = allSlots.filter(
     (slot) => !slot.is_reseller && slot.box_kind === "MESSAGE" && slot.status === "VACANT"
   );
   const visibleSlots =
-    activeTab === "customers"
-      ? customerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="customer" />)
-      : activeTab === "resellers"
+    activeTab === "resellers"
       ? [
           ...resellerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="reseller" />),
           ...resellerAssignableSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="reseller-setup" />)
         ]
-      : activeTab === "messages"
-      ? messageSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="customer" />)
       : [
           ...messageResellerSlots.map((slot) => <SlotCard key={slot.id} slot={slot} mode="reseller" />),
           ...messageResellerAssignableSlots.map((slot) => (
             <SlotCard key={slot.id} slot={slot} mode="reseller-setup" />
           ))
         ];
-  const activeTabTitle =
-    activeTab === "resellers"
-      ? "Resellers"
-      : activeTab === "messages"
-      ? "Message boxes"
-      : activeTab === "message-resellers"
-      ? "Message resellers"
-      : "Customer slots";
-  const isResellerTab = activeTab === "resellers" || activeTab === "message-resellers";
+  const activeTabTitle = activeTab === "message-resellers" ? "Message resellers" : "Resellers";
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-8">
@@ -147,9 +125,7 @@ export default async function AdminPage({
 
       <nav className="mb-6 flex flex-wrap gap-2">
         {[
-          { key: "customers", label: "Customer slots", href: "/admin" },
-          { key: "resellers", label: "Resellers", href: "/admin?tab=resellers" },
-          { key: "messages", label: "Message boxes", href: "/admin?tab=messages" },
+          { key: "resellers", label: "Resellers", href: "/admin" },
           { key: "message-resellers", label: "Message resellers", href: "/admin?tab=message-resellers" }
         ].map((tab) => (
           <a
@@ -168,22 +144,14 @@ export default async function AdminPage({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold">
-              {isResellerTab
-                ? tabBoxKind === "MESSAGE"
-                  ? "Add message reseller"
-                  : "Add reseller box"
-                : tabBoxKind === "MESSAGE"
-                ? "Add message box"
-                : "Add customer box"}
+              {activeTab === "message-resellers" ? "Add message reseller" : "Add reseller box"}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {isResellerTab
-                ? "Create a reseller box with a stable NFC upload link."
-                : "Create another box for direct event provisioning."}
+              Create a reseller box with a stable NFC upload link.
             </p>
           </div>
           <div className="sm:min-w-96">
-            {isResellerTab ? <AddResellerBoxForm boxKind={tabBoxKind} /> : <AddCustomerBoxForm boxKind={tabBoxKind} />}
+            <AddResellerBoxForm boxKind={tabBoxKind} />
           </div>
         </div>
       </section>
