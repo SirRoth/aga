@@ -52,7 +52,7 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
               </p>
             </div>
 
-            {active && hasCapacity ? (
+            {isDemoMode || (active && hasCapacity) ? (
               isMessageBox ? (
                 <MessageUploadForm
                   uploadSlug={params.upload_slug}
