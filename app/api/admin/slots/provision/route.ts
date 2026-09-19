@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { createEventPrefix } from "@/lib/r2";
+import { createEventPrefix, deletePrefix } from "@/lib/r2";
 import { createSupabaseAdminClient, requireAdmin } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -17,11 +17,11 @@ export async function POST(request: Request) {
     .from("customer_slots")
     .select("*")
     .eq("id", slotId)
-    .eq("status", "VACANT")
+    .in("status", ["VACANT", "DEMO"])
     .maybeSingle();
 
   if (slotError) throw slotError;
-  if (!slot) return NextResponse.json({ error: "Vacant slot not found." }, { status: 404 });
+  if (!slot) return NextResponse.json({ error: "Available slot not found." }, { status: 404 });
   if (slot.reseller_suspended) {
     return NextResponse.json({ error: "Suspended reseller slots cannot be provisioned." }, { status: 423 });
   }
@@ -30,6 +30,12 @@ export async function POST(request: Request) {
   const uploadSlug = slot.is_reseller && slot.upload_slug ? slot.upload_slug : nanoid(14);
   const downloadToken = nanoid(28);
   const storagePrefix = createEventPrefix(slot.id, cleanEventName);
+
+  if (slot.status === "DEMO") {
+    if (slot.storage_prefix) await deletePrefix(slot.storage_prefix);
+    const { error: photosError } = await supabase.from("photos").delete().eq("slot_id", slot.id);
+    if (photosError) throw photosError;
+  }
 
   const { error } = await supabase
     .from("customer_slots")

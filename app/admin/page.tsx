@@ -36,6 +36,8 @@ function SlotCard({ slot, mode }: { slot: CustomerSlot; mode: "reseller-setup" |
               ? "Suspended for reseller account"
               : mode === "reseller-setup"
               ? "Available for reseller assignment"
+              : slot.status === "DEMO"
+              ? "Demo mode — ready for client demonstrations"
               : slot.event_name ?? (slot.is_reseller ? "No active reseller event" : "No active event")}
           </p>
         </div>

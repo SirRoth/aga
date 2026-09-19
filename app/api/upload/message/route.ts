@@ -3,7 +3,7 @@ import { createObjectKey, uploadObject } from "@/lib/r2";
 import { inferMediaMimeType } from "@/lib/media-files";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
-import { isWithinActiveWindow } from "@/lib/utils";
+import { isAcceptingUploads } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -45,9 +45,8 @@ export async function POST(request: Request) {
   if (
     !customerSlot ||
     customerSlot.box_kind !== "MESSAGE" ||
-    customerSlot.status !== "ACTIVE" ||
-    !customerSlot.storage_prefix ||
-    !isWithinActiveWindow(customerSlot.event_start_at)
+    !isAcceptingUploads(customerSlot) ||
+    !customerSlot.storage_prefix
   ) {
     return NextResponse.json({ error: "This message upload link has expired." }, { status: 403 });
   }

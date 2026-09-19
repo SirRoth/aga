@@ -20,6 +20,17 @@ export function isWithinActiveWindow(startAt: string | null) {
   return Date.now() <= expiresAt.getTime();
 }
 
+export function isAcceptingUploads(slot: {
+  status: string;
+  is_reseller: boolean;
+  event_start_at: string | null;
+}) {
+  return (
+    (slot.status === "DEMO" && slot.is_reseller) ||
+    (slot.status === "ACTIVE" && isWithinActiveWindow(slot.event_start_at))
+  );
+}
+
 export function isOlderThanDays(startAt: string | null, days: number) {
   if (!startAt) return false;
   const threshold = new Date();

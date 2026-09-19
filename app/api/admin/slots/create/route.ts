@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
+import { createDemoPrefix } from "@/lib/r2";
 import { createSupabaseAdminClient, requireAdmin } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -16,15 +17,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Reseller company name is required." }, { status: 400 });
     }
 
+    const slotId = crypto.randomUUID();
     const { data, error } = await supabase
       .from("customer_slots")
       .insert({
+        id: slotId,
         is_reseller: true,
         box_kind: cleanBoxKind,
         reseller_company_name: cleanCompanyName,
         reseller_suspended: false,
         slot_name: cleanCompanyName,
-        upload_slug: nanoid(14)
+        upload_slug: nanoid(14),
+        status: "DEMO",
+        storage_prefix: createDemoPrefix(slotId)
       })
       .select("id,upload_slug")
       .single();

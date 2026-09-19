@@ -3,6 +3,7 @@ import type { SlotStatus } from "@/lib/types";
 
 const styles: Record<SlotStatus, string> = {
   VACANT: "bg-muted text-muted-foreground",
+  DEMO: "bg-sky-100 text-sky-800",
   ACTIVE: "bg-emerald-100 text-emerald-800",
   EXPIRED_GRACE: "bg-amber-100 text-amber-900"
 };

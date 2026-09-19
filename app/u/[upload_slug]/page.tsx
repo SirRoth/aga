@@ -4,7 +4,7 @@ import { MessageUploadForm } from "@/components/message-upload-form";
 import { UploadForm } from "@/components/upload-form";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
-import { isWithinActiveWindow } from "@/lib/utils";
+import { isAcceptingUploads } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +22,7 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
   const suspended = customerSlot.is_reseller && customerSlot.reseller_suspended;
   if (suspended) redirect("/account-suspended");
 
-  const active =
-    customerSlot.status === "ACTIVE" &&
-    !suspended &&
-    isWithinActiveWindow(customerSlot.event_start_at);
+  const active = !suspended && isAcceptingUploads(customerSlot);
   const hasCapacity = customerSlot.storage_used_bytes < customerSlot.storage_limit_bytes;
   const isMessageBox = customerSlot.box_kind === "MESSAGE";
 
@@ -35,7 +32,7 @@ export default async function UploadPage({ params }: { params: { upload_slug: st
         <div className="flex items-center">
           <div className="w-full rounded-[24px] border border-white/70 bg-[#fffaf3]/90 p-6 shadow-2xl shadow-[#7f5a2d]/15 backdrop-blur sm:p-8 lg:p-10">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#b17d33]">
-              {customerSlot.event_name}
+              {customerSlot.event_name ?? "Demo mode"}
             </p>
             <h1 className="mt-7 font-serif text-4xl font-semibold leading-tight text-[#2d211a] sm:text-5xl">
               Upload here!

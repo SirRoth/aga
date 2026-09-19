@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { assertObjectExists, createObjectKey, createPresignedUploadUrl } from "@/lib/r2";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
-import { isWithinActiveWindow } from "@/lib/utils";
+import { isAcceptingUploads } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -66,10 +66,7 @@ async function getActiveSlot(uploadSlug: string) {
     return { supabase, slot: null, suspended: true };
   }
 
-  const active =
-    customerSlot.status === "ACTIVE" &&
-    Boolean(customerSlot.storage_prefix) &&
-    isWithinActiveWindow(customerSlot.event_start_at);
+  const active = Boolean(customerSlot.storage_prefix) && isAcceptingUploads(customerSlot);
 
   return { supabase, slot: active ? customerSlot : null, suspended: false };
 }

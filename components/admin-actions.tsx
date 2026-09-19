@@ -126,11 +126,11 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
           value={eventName}
           onChange={(event) => setEventName(event.target.value)}
           placeholder="Event name"
-          disabled={slot.status !== "VACANT" || slot.reseller_suspended}
+          disabled={(slot.status !== "VACANT" && slot.status !== "DEMO") || slot.reseller_suspended}
         />
         <Button
           onClick={submit}
-          disabled={slot.status !== "VACANT" || slot.reseller_suspended || pending || !eventName.trim()}
+          disabled={(slot.status !== "VACANT" && slot.status !== "DEMO") || slot.reseller_suspended || pending || !eventName.trim()}
         >
           <Rocket className="h-4 w-4" />
           Provision
@@ -143,7 +143,7 @@ export function ProvisionSlotForm({ slot }: { slot: CustomerSlot }) {
           <input
             checked={allowVideos}
             className="peer sr-only"
-            disabled={slot.status !== "VACANT" || slot.reseller_suspended}
+            disabled={(slot.status !== "VACANT" && slot.status !== "DEMO") || slot.reseller_suspended}
             onChange={(event) => setAllowVideos(event.target.checked)}
             type="checkbox"
           />
@@ -458,10 +458,10 @@ export function SlotLinks({ slot }: { slot: CustomerSlot }) {
   }
 
   const links = [
-    slot.upload_slug ? { label: "NFC", href: `/u/${slot.upload_slug}` } : null,
+    slot.upload_slug ? { label: slot.status === "DEMO" ? "Demo NFC" : "NFC", href: `/u/${slot.upload_slug}` } : null,
     slot.download_token ? { label: "Download", href: `/d/${slot.download_token}` } : null
   ].filter(Boolean) as { label: string; href: string }[];
-  const nfcLink = links.find((link) => link.label === "NFC");
+  const nfcLink = slot.upload_slug ? { href: `/u/${slot.upload_slug}` } : null;
 
   return (
     <div className="grid gap-2 text-sm">

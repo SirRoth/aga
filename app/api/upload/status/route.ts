@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
-import { isWithinActiveWindow } from "@/lib/utils";
+import { isAcceptingUploads } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -33,10 +33,7 @@ export async function GET(request: Request) {
   const suspended = customerSlot.is_reseller && customerSlot.reseller_suspended;
 
   return NextResponse.json({
-    active:
-      customerSlot.status === "ACTIVE" &&
-      !suspended &&
-      isWithinActiveWindow(customerSlot.event_start_at),
+    active: !suspended && isAcceptingUploads(customerSlot),
     suspended,
     message: suspended ? "This reseller account is suspended. Please contact your service provider." : null,
     storageLimitBytes: customerSlot.storage_limit_bytes,

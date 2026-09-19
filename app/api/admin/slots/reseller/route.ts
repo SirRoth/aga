@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
+import { createDemoPrefix } from "@/lib/r2";
 import { createSupabaseAdminClient, requireAdmin } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -34,7 +35,9 @@ export async function POST(request: Request) {
       reseller_suspended: false,
       reseller_company_name: cleanCompanyName,
       slot_name: cleanCompanyName,
-      upload_slug: uploadSlug
+      upload_slug: uploadSlug,
+      status: "DEMO",
+      storage_prefix: createDemoPrefix(slot.id)
     })
     .eq("id", slotId);
 

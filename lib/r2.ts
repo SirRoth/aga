@@ -45,6 +45,10 @@ export function createEventPrefix(slotId: string, eventName: string) {
   return `events/${slotId}/${Date.now()}-${safeName || "event"}/`;
 }
 
+export function createDemoPrefix(slotId: string) {
+  return `demos/${slotId}/`;
+}
+
 export function createObjectKey(prefix: string, fileName: string) {
   const safeName = fileName
     .replace(/[/\\]/g, "-")

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deletePrefix } from "@/lib/r2";
+import { createDemoPrefix, deletePrefix } from "@/lib/r2";
 import type { CustomerSlot } from "@/lib/types";
 
 export async function recycleSlot(supabase: SupabaseClient, slot: CustomerSlot) {
@@ -12,11 +12,11 @@ export async function recycleSlot(supabase: SupabaseClient, slot: CustomerSlot) 
   const { error } = await supabase
     .from("customer_slots")
     .update({
-      status: "VACANT",
+      status: slot.is_reseller ? "DEMO" : "VACANT",
       event_name: null,
       upload_slug: slot.is_reseller ? slot.upload_slug : null,
       download_token: null,
-      storage_prefix: null,
+      storage_prefix: slot.is_reseller ? createDemoPrefix(slot.id) : null,
       event_start_at: null,
       storage_used_bytes: 0,
       allow_videos: false,

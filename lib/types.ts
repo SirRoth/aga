@@ -1,4 +1,4 @@
-export type SlotStatus = "VACANT" | "ACTIVE" | "EXPIRED_GRACE";
+export type SlotStatus = "VACANT" | "DEMO" | "ACTIVE" | "EXPIRED_GRACE";
 export type SlotBoxKind = "PHOTO" | "MESSAGE";
 
 export type CustomerSlot = {

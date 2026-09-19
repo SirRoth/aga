@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CustomerSlot } from "@/lib/types";
-import { isWithinActiveWindow } from "@/lib/utils";
+import { isAcceptingUploads } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -26,9 +26,8 @@ export async function GET(request: Request) {
   const customerSlot = slot as CustomerSlot | null;
   if (
     !customerSlot ||
-    customerSlot.status !== "ACTIVE" ||
-    !customerSlot.storage_prefix ||
-    !isWithinActiveWindow(customerSlot.event_start_at)
+    !isAcceptingUploads(customerSlot) ||
+    !customerSlot.storage_prefix
   ) {
     return NextResponse.json({ error: "Upload link expired." }, { status: 403 });
   }
